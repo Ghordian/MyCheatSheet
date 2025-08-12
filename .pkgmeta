@@ -9,4 +9,5 @@ ignore:
   - logs
   - *.ps1
   - *.bak
+  - .vscode
   

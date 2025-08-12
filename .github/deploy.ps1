@@ -4,7 +4,7 @@ param(
 )
 
 $AddonName = "MyCheatSheet"
-$SourcePath = $PSScriptRoot
+ $SourcePath = (Resolve-Path "$PSScriptRoot\..")
 $DestinationPath = Join-Path $WoWPath $AddonName
 $TocFile = Join-Path $SourcePath "$AddonName.toc"
 
@@ -142,6 +142,11 @@ foreach ($file in $tocFiles) {
     }
 }
 
+
+# Asegurar que Bindings.xml esté incluido
+if (-not ($allFiles -contains "Bindings.xml")) {
+    $allFiles += "Bindings.xml"
+}
 $uniqueFiles = @("$AddonName.toc") + ($allFiles | Sort-Object | Get-Unique)
 
 Write-Host "Copying addon files..." -ForegroundColor Yellow
