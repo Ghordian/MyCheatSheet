@@ -1,0 +1,12 @@
+ignore:
+  - docs
+  - .github
+  - .gitignore
+  - README.md
+  - CHANGELOG.md
+  - *.wowproj
+  - *.wowproj.user
+  - logs
+  - *.ps1
+  - *.bak
+  
