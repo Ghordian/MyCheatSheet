@@ -3,13 +3,17 @@ local ADDON_NAME, private = ...
 
 local MyCheatSheet = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceEvent-3.0", "AceConsole-3.0", "AceHook-3.0");
 
----@type AceLocale-3.0
 local AceLocale = LibStub("AceLocale-3.0")
----@type AceGUI-3.0
 local AceGUI = LibStub("AceGUI-3.0")
 
----@type table<string, string>
 local L = AceLocale:GetLocale(ADDON_NAME)
+
+-- BINDING
+function MyCheatSheet_ToggleBinding()
+  if MyCheatSheet and MyCheatSheet.ToggleUI then
+    MyCheatSheet:ToggleUI()
+  end
+end
 
 -- STATS
 L["HASTE"] = STAT_HASTE
@@ -267,6 +271,16 @@ function MyCheatSheet:CreateCheatSheetUI()
         resizeHandle:SetScript("OnMouseUp", function(self) self:GetParent():StopMovingOrSizing(); end);
     end
 
+    -- Icono del addon en la esquina superior izquierda
+    local iconFrame = CreateFrame("Frame", nil, frame);
+    iconFrame:SetSize(24, 24);
+    iconFrame:SetPoint("TOPLEFT", 16, -16);
+    
+    local iconTexture = iconFrame:CreateTexture(nil, "ARTWORK");
+    iconTexture:SetAllPoints(iconFrame);
+    iconTexture:SetTexture("Interface\\Icons\\INV_Scroll_03");
+    iconTexture:SetTexCoord(0.08, 0.92, 0.08, 0.92); -- Recortar bordes para mejor apariencia
+    
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
     title:SetText(L["MY_CHEAT_SHEET"]);
     title:SetPoint("TOP", 0, -10);
@@ -309,7 +323,7 @@ function MyCheatSheet:CreateUIContent()
         return
     end
 
-    local topOffset = -25;
+    local topOffset = -50;
     local leftPadding = 20;
     local padding = 10;
     local dropdownWidth = 180;
@@ -322,7 +336,7 @@ function MyCheatSheet:CreateUIContent()
     classLabel:SetJustifyH("LEFT");
 
     self.classDropdown = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate");
-    self.classDropdown:SetPoint("TOPLEFT", classLabel, "BOTTOMLEFT", -20, -5);
+    self.classDropdown:SetPoint("TOPLEFT", classLabel, "BOTTOMLEFT", -20, -10); -- Espaciado reducido
     UIDropDownMenu_SetWidth(self.classDropdown, dropdownWidth);
     UIDropDownMenu_SetText(self.classDropdown, "");
 
@@ -333,7 +347,7 @@ function MyCheatSheet:CreateUIContent()
     specLabel:SetJustifyH("LEFT");
 
     self.specDropdown = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate");
-    self.specDropdown:SetPoint("TOPLEFT", specLabel, "BOTTOMLEFT", -20, -5);
+    self.specDropdown:SetPoint("TOPLEFT", specLabel, "BOTTOMLEFT", -20, -10); -- Espaciado reducido
     UIDropDownMenu_SetWidth(self.specDropdown, dropdownWidth);
     UIDropDownMenu_SetText(self.specDropdown, "");
 
@@ -344,7 +358,7 @@ function MyCheatSheet:CreateUIContent()
     contentLabel:SetJustifyH("LEFT");
 
     self.contentDropdown = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate");
-    self.contentDropdown:SetPoint("TOPLEFT", contentLabel, "BOTTOMLEFT", -20, -5);
+    self.contentDropdown:SetPoint("TOPLEFT", contentLabel, "BOTTOMLEFT", -20, -10); -- Espaciado reducido
     UIDropDownMenu_SetWidth(self.contentDropdown, dropdownWidth);
     UIDropDownMenu_SetText(self.contentDropdown, "");
 
@@ -1225,6 +1239,20 @@ function MyCheatSheet:CreateImportExportFrame()
     frame:SetFrameStrata("DIALOG")
     frame:SetFrameLevel(1000)
     
+    -- Registrar para manejo de ESC
+    frame:SetScript("OnShow", function(self)
+        table.insert(UISpecialFrames, "MyCheatSheetImportExportFrame")
+    end)
+    
+    frame:SetScript("OnHide", function(self)
+        for i = #UISpecialFrames, 1, -1 do
+            if UISpecialFrames[i] == "MyCheatSheetImportExportFrame" then
+                table.remove(UISpecialFrames, i)
+                break
+            end
+        end
+    end)
+    
     -- Título
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     frame.title:SetText("Import / Export")
@@ -1313,29 +1341,29 @@ function MyCheatSheet:CreateImportExportFrame()
     importScrollFrame:SetScrollChild(importEditBox)
     
     local importButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    importButton:SetText("Import (Merge)")
+    importButton:SetText("Preview Import")
     importButton:SetSize(120, 25) -- Más ancho
     importButton:SetPoint("TOPLEFT", importBorder, "BOTTOMLEFT", 0, -10)
     importButton:SetScript("OnClick", function()
         local importData = importEditBox:GetText()
         if importData and importData ~= "" and importData ~= "Paste export string here..." then
             if self.export then
-                self.export:HandleImportCommand({"import", importData, "merge"})
+                self.export:HandleImportCommand({"import", importData, "preview"})
             end
         else
             print("|cffff0000Please paste an export string first|r")
         end
     end)
     
-    local replaceButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    replaceButton:SetText("Replace")
-    replaceButton:SetSize(100, 25) -- Más ancho
-    replaceButton:SetPoint("LEFT", importButton, "RIGHT", 10, 0)
-    replaceButton:SetScript("OnClick", function()
+    local mergeButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    mergeButton:SetText("Quick Merge")
+    mergeButton:SetSize(100, 25) -- Más ancho
+    mergeButton:SetPoint("LEFT", importButton, "RIGHT", 10, 0)
+    mergeButton:SetScript("OnClick", function()
         local importData = importEditBox:GetText()
         if importData and importData ~= "" and importData ~= "Paste export string here..." then
             if self.export then
-                self.export:HandleImportCommand({"import", importData, "replace"})
+                self.export:HandleImportCommand({"import", importData, "merge"})
             end
         else
             print("|cffff0000Please paste an export string first|r")
@@ -1461,14 +1489,6 @@ function MyCheatSheet:GetTalentInfo()
     end
 
     return nil, nil
-end
-
---- Manejador de keybinding (placeholder)
-function MyCheatSheet:OnKeybinding()
-  --[[
-    LibStub('SecureTabs-2.0'):Select(ManuscriptsJournal.Tab)
-    ]]--
-  --todo
 end
 
 --- Delega la aplicación de posición al módulo Config

@@ -13,7 +13,7 @@ local L = AceLocale:GetLocale(ADDON_NAME)
 --[[ "|cAARRGGBB" ]]--
 
 -- La tabla principal contendrá los datos del addon.
-MyCheatSheet.data = {
+private.data = {
     -- Un número de versión para los datos.
 --**version = 1, -- inital definition
 --**version = 2, -- added MyCheatSheetStatGroup
@@ -24,7 +24,6 @@ MyCheatSheet.data = {
     version = 7, -- added fields author, updated for each cheat-sheet
 
     -- Los datos se indexan por classID y specializationID.
-    -- Ejemplo de clave: "classID_specID"
     sheets = {
       -- Warrior (1) - Patch 11.2.
       [1] = {
@@ -1634,5 +1633,7 @@ MyCheatSheet.data = {
    },
 
 };
+
+MyCheatSheet.data = private.data
 
 -- data.lua -- fin del archivo

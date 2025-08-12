@@ -38,13 +38,16 @@
     <Content Include="locale\esES.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="minimap.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="MyCheatSheet.toc">
       <SubType>TableOfContents</SubType>
     </Content>
     <Content Include="embeds.xml">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="NOTES.md" />
+    <Content Include="README.md" />
     <Content Include="types.lua">
       <SubType>Code</SubType>
     </Content>

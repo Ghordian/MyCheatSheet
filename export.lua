@@ -8,12 +8,47 @@ local module = MyCheatSheet:NewModule("Export", "AceEvent-3.0")
 
 ---@type AceLocale-3.0
 local AceLocale = LibStub("AceLocale-3.0")
----@type table<string, string>
 local L = AceLocale:GetLocale(ADDON_NAME)
 
 -- Dependencias externas
 local LibDeflate = LibStub:GetLibrary("LibDeflate", true)
 local AceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+
+-- Tablas de conversión para IDs legibles
+local CLASS_NAMES = {
+    [1] = "Warrior", [2] = "Paladin", [3] = "Hunter", [4] = "Rogue", 
+    [5] = "Priest", [6] = "Death Knight", [7] = "Shaman", [8] = "Mage",
+    [9] = "Warlock", [10] = "Monk", [11] = "Druid", [12] = "Demon Hunter", [13] = "Evoker"
+}
+
+local SPEC_NAMES = {
+    -- Warrior
+    [71] = "Arms", [72] = "Fury", [73] = "Protection",
+    -- Paladin  
+    [65] = "Holy", [66] = "Protection", [70] = "Retribution",
+    -- Hunter
+    [253] = "Beast Mastery", [254] = "Marksmanship", [255] = "Survival",
+    -- Rogue
+    [259] = "Assassination", [260] = "Outlaw", [261] = "Subtlety",
+    -- Priest
+    [256] = "Discipline", [257] = "Holy", [258] = "Shadow",
+    -- Death Knight
+    [250] = "Blood", [251] = "Frost", [252] = "Unholy",
+    -- Shaman
+    [262] = "Elemental", [263] = "Enhancement", [264] = "Restoration",
+    -- Mage
+    [62] = "Arcane", [63] = "Fire", [64] = "Frost",
+    -- Warlock
+    [265] = "Affliction", [266] = "Demonology", [267] = "Destruction",
+    -- Monk
+    [268] = "Brewmaster", [270] = "Mistweaver", [269] = "Windwalker",
+    -- Druid
+    [102] = "Balance", [103] = "Feral", [104] = "Guardian", [105] = "Restoration",
+    -- Demon Hunter
+    [577] = "Havoc", [581] = "Vengeance",
+    -- Evoker
+    [1467] = "Devastation", [1468] = "Preservation", [1473] = "Augmentation"
+}
 
 function module:DebugPrint(...)
     MyCheatSheet:DebugPrint(...)
@@ -227,17 +262,23 @@ end
 ---@param args table
 function module:HandleImportCommand(args)
     local importData = args[2]
-    local mode = args[3] or "merge" -- merge, replace, validate
+    local mode = args[3] or "preview" -- preview, merge, replace, validate
     
     if not importData then
-        print("|cffff0000Usage: /mcs import <data_string> [merge|replace|validate]|r")
+        print("|cffff0000Usage: /mcs import <data_string> [preview|merge|replace|validate]|r")
+        return
+    end
+    
+    -- Si el modo es preview, mostrar la ventana de vista previa
+    if mode == "preview" then
+        self:ShowImportPreview(importData)
         return
     end
     
     local success, result = self:ImportSheets(importData, mode)
     
     if success then
-        if mode == "validate" then
+        if mode == "validate_only" then
             print(string.format("|cff00ff00[VALID] Import data: %d specs from %s|r", 
                 result.specs, result.author or "Unknown"))
             print(string.format("  Version: %s, Date: %s", 
@@ -479,7 +520,7 @@ function module:ShowExportUI(exportString, exportType)
     
     -- Posicionar ligeramente desplazado del centro
     self.exportFrame:ClearAllPoints()
-    self.exportFrame:SetPoint("CENTER", UIParent, "CENTER", -50, -50)
+    self.exportFrame:SetPoint("CENTER", UIParent, "CENTER")
     
     -- Mostrar frame y asegurar que esté por encima
     self.exportFrame:Show()
@@ -568,6 +609,390 @@ function module:CreateExportFrame()
     
     frame:Hide()
     return frame
+end
+
+--- Muestra ventana de vista previa antes de importar
+---@param importData string Datos para importar
+function module:ShowImportPreview(importData)
+    -- Validar y obtener información del import primero
+    local success, previewData = self:ImportSheets(importData, "validate_only")
+    
+    if not success then
+        print("|cffff0000[ERROR] Invalid import data: " .. tostring(previewData) .. "|r")
+        return
+    end
+    
+    -- Crear frame de vista previa si no existe
+    if not self.previewFrame then
+        self.previewFrame = self:CreateImportPreviewFrame()
+    end
+    
+    -- Configurar contenido de la vista previa
+    self:PopulatePreviewData(previewData, importData)
+    
+    -- Mostrar frame
+    self.previewFrame:Show()
+    self.previewFrame:Raise()
+end
+
+--- Crea el frame de vista previa de importación
+---@return Frame previewFrame
+function module:CreateImportPreviewFrame()
+    local frame = CreateFrame("Frame", "MyCheatSheetImportPreviewFrame", UIParent, "BasicFrameTemplateWithInset")
+    frame:SetSize(500, 450)
+    frame:SetPoint("CENTER")
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    
+    -- Asegurar que aparezca por encima
+    frame:SetFrameStrata("FULLSCREEN")
+    frame:SetFrameLevel(2100)
+    
+    -- Estrategia simple: interceptar ESC directamente para este frame
+    local originalOnKeyDown = frame:GetScript("OnKeyDown")
+    frame:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:Hide()
+            return -- Consumir el evento
+        end
+        if originalOnKeyDown then
+            originalOnKeyDown(self, key)
+        end
+    end)
+    
+    frame:SetScript("OnShow", function(self)
+        -- Habilitar captura de teclado solo para este frame
+        self:EnableKeyboard(true)
+        self:SetPropagateKeyboardInput(false) -- No propagar teclas a otros frames
+    end)
+    
+    frame:SetScript("OnHide", function(self)
+        self:EnableKeyboard(false)
+    end)
+    
+    -- Título
+    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.title:SetText(L["IMPORT_PREVIEW_TITLE"] or "Import Preview")
+    frame.title:SetPoint("TOP", frame, "TOP", 0, -5) -- Volver a la posición original que funcionaba
+    
+    -- Área de información principal
+    local infoArea = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+    infoArea:SetPoint("TOPLEFT", frame, "TOPLEFT", 15, -40)
+    infoArea:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -35, -40)
+    infoArea:SetHeight(320) -- Aumentamos altura para usar mejor el espacio
+    
+    local infoContent = CreateFrame("Frame", nil, infoArea)
+    infoContent:SetWidth(450)
+    infoArea:SetScrollChild(infoContent)
+    frame.infoContent = infoContent
+    
+    -- Labels para mostrar información
+    frame.setupName = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.setupName:SetPoint("TOPLEFT", infoContent, "TOPLEFT", 5, -5)
+    frame.setupName:SetTextColor(1, 1, 0.8)
+    
+    frame.authorInfo = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.authorInfo:SetPoint("TOPLEFT", frame.setupName, "BOTTOMLEFT", 0, -5)
+    frame.authorInfo:SetTextColor(0.8, 0.8, 0.8)
+    
+    frame.timestampInfo = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.timestampInfo:SetPoint("TOPLEFT", frame.authorInfo, "BOTTOMLEFT", 0, -2)
+    frame.timestampInfo:SetTextColor(0.8, 0.8, 0.8)
+    
+    -- Separador
+    local separator1 = infoContent:CreateTexture(nil, "ARTWORK")
+    separator1:SetTexture("Interface\\Common\\UI-TooltipDivider-Transparent")
+    separator1:SetPoint("TOPLEFT", frame.timestampInfo, "BOTTOMLEFT", -5, -10)
+    separator1:SetPoint("TOPRIGHT", infoContent, "TOPRIGHT", -5, -10)
+    separator1:SetHeight(8)
+    
+    -- Contenido del setup
+    frame.contentTitle = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.contentTitle:SetText(L["SETUP_CONTENTS"] or "Setup Contents:")
+    frame.contentTitle:SetPoint("TOPLEFT", separator1, "BOTTOMLEFT", 5, -10)
+    frame.contentTitle:SetTextColor(0.8, 1, 0.8)
+    
+    frame.specsInfo = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.specsInfo:SetPoint("TOPLEFT", frame.contentTitle, "BOTTOMLEFT", 10, -5)
+    frame.specsInfo:SetTextColor(1, 1, 1)
+    
+    frame.detailsInfo = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.detailsInfo:SetPoint("TOPLEFT", frame.specsInfo, "BOTTOMLEFT", 0, -10)
+    frame.detailsInfo:SetTextColor(0.9, 0.9, 0.9)
+    frame.detailsInfo:SetJustifyH("LEFT")
+    frame.detailsInfo:SetWidth(420)
+    
+    -- Separador 2
+    local separator2 = infoContent:CreateTexture(nil, "ARTWORK")
+    separator2:SetTexture("Interface\\Common\\UI-TooltipDivider-Transparent")
+    separator2:SetPoint("TOPLEFT", frame.detailsInfo, "BOTTOMLEFT", -15, -15)
+    separator2:SetPoint("TOPRIGHT", infoContent, "TOPRIGHT", -5, -15)
+    separator2:SetHeight(8)
+    
+    -- Advertencias
+    frame.warningTitle = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.warningTitle:SetText(L["IMPORT_ACTIONS"] or "Import Actions:")
+    frame.warningTitle:SetPoint("TOPLEFT", separator2, "BOTTOMLEFT", 5, -10)
+    frame.warningTitle:SetTextColor(1, 0.8, 0.2)
+    
+    frame.warningText = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.warningText:SetPoint("TOPLEFT", frame.warningTitle, "BOTTOMLEFT", 10, -5)
+    frame.warningText:SetTextColor(1, 0.9, 0.7)
+    frame.warningText:SetJustifyH("LEFT")
+    frame.warningText:SetWidth(420)
+    
+    -- Área de botones
+    local buttonArea = CreateFrame("Frame", nil, frame)
+    buttonArea:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 15, 15)
+    buttonArea:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -15, 15)
+    buttonArea:SetHeight(70) -- Reducimos altura para optimizar espacio
+    
+    -- Botón Ver Detalles
+    frame.detailsButton = CreateFrame("Button", nil, buttonArea, "UIPanelButtonTemplate")
+    frame.detailsButton:SetText(L["VIEW_DETAILS"] or "View Details")
+    frame.detailsButton:SetSize(100, 25)
+    frame.detailsButton:SetPoint("BOTTOMLEFT", buttonArea, "BOTTOMLEFT", 0, 35)
+    frame.detailsButton:SetScript("OnClick", function() 
+        self:ShowImportDetails(frame.importData)
+    end)
+    
+    -- Botones de importación
+    frame.mergeButton = CreateFrame("Button", nil, buttonArea, "UIPanelButtonTemplate")
+    frame.mergeButton:SetText(L["IMPORT_MERGE"] or "Import (Merge)")
+    frame.mergeButton:SetSize(150, 25) -- Más ancho para texto largo en español
+    frame.mergeButton:SetPoint("BOTTOMLEFT", buttonArea, "BOTTOMLEFT", 0, 0)
+    frame.mergeButton:SetScript("OnClick", function() 
+        self:ImportSheets(frame.importData, "merge")
+        frame:Hide()
+        print("|cff00ff00[SUCCESS] Setup imported successfully (merged with existing data)|r")
+    end)
+    
+    frame.replaceButton = CreateFrame("Button", nil, buttonArea, "UIPanelButtonTemplate")
+    frame.replaceButton:SetText(L["REPLACE"] or "Replace")
+    frame.replaceButton:SetSize(100, 25)
+    frame.replaceButton:SetPoint("LEFT", frame.mergeButton, "RIGHT", 10, 0)
+    frame.replaceButton:SetScript("OnClick", function() 
+        self:ImportSheets(frame.importData, "replace")
+        frame:Hide()
+        print("|cff00ff00[SUCCESS] Setup imported successfully (replaced existing data)|r")
+    end)
+    
+    -- Botón Cancelar
+    frame.cancelButton = CreateFrame("Button", nil, buttonArea, "UIPanelButtonTemplate")
+    frame.cancelButton:SetText(L["CANCEL"] or "Cancel")
+    frame.cancelButton:SetSize(80, 25)
+    frame.cancelButton:SetPoint("BOTTOMRIGHT", buttonArea, "BOTTOMRIGHT", 0, 0)
+    frame.cancelButton:SetScript("OnClick", function() frame:Hide() end)
+    
+    frame:Hide()
+    return frame
+end
+
+--- Llena los datos de vista previa
+---@param previewData table
+---@param importData string
+function module:PopulatePreviewData(previewData, importData)
+    local frame = self.previewFrame
+    ---@cast frame +{importData: string}
+    frame.importData = importData -- Guardar para usar en los botones
+    
+    -- Decodificar los datos para obtener más información
+    local success, fullData = self:GetImportedDataDetails(importData)
+    local setupInfo = success and fullData or {}
+    
+    -- Información básica
+    local setupName = "Custom Setup"
+    if setupInfo.exportType then
+        if setupInfo.exportType == "single" then
+            setupName = "Single Spec Setup"
+        elseif setupInfo.exportType == "class" then
+            setupName = "Class Setup"  
+        elseif setupInfo.exportType == "all" then
+            setupName = "Complete Dataset"
+        end
+    end
+    
+    -- Intentar obtener más contexto del contenido
+    if success and setupInfo.sheets then
+        local firstClassID, firstClassData = next(setupInfo.sheets)
+        if firstClassID and firstClassData then
+            local className = self:GetClassName(tonumber(firstClassID))
+            local specCount = 0
+            local firstSpecID = nil
+            
+            for specID, _ in pairs(firstClassData) do
+                specCount = specCount + 1
+                if not firstSpecID then
+                    firstSpecID = specID
+                end
+            end
+            
+            if setupInfo.exportType == "single" and firstSpecID then
+                local specName = self:GetSpecName(tonumber(firstSpecID))
+                setupName = string.format("%s %s Setup", className, specName)
+            elseif setupInfo.exportType == "class" then
+                setupName = string.format("%s Class Setup", className)
+            end
+        end
+    end
+    
+    frame.setupName:SetText("Setup: " .. setupName)
+    frame.authorInfo:SetText("Author: " .. (previewData.author or "Unknown"))
+    frame.timestampInfo:SetText("Created: " .. (previewData.timestamp or "Unknown"))
+    
+    -- Información de contenido  
+    local specsText = string.format(L["SPECIALIZATIONS_WILL_BE_IMPORTED"] or "%d specialization(s) will be imported", previewData.specs or 0)
+    frame.specsInfo:SetText(specsText)
+    
+    -- Detalles adicionales
+    local details = {}
+    table.insert(details, L["EQUIPMENT_AND_STAT_CONFIGS"] or "Equipment and stat configurations")
+    table.insert(details, L["COMPATIBLE_WITH_CURRENT_VERSION"] or "Compatible with current addon version")
+    table.insert(details, L["ALL_DATA_PASSED_VALIDATION"] or "All data has passed validation checks")
+    
+    if setupInfo.version then
+        table.insert(details, string.format(L["EXPORT_VERSION"] or "Export version: %s", tostring(setupInfo.version)))
+    end
+    
+    -- Información específica de clases/specs si está disponible
+    if success and setupInfo.sheets then
+        local classCount = 0
+        local specDetails = {}
+        for classID, classData in pairs(setupInfo.sheets) do
+            classCount = classCount + 1
+            local specCount = 0
+            local classSpecDetails = {}
+            
+            for specID, _ in pairs(classData) do
+                specCount = specCount + 1
+                local specName = self:GetSpecName(tonumber(specID))
+                table.insert(classSpecDetails, specName)
+            end
+            
+            local className = self:GetClassName(tonumber(classID))
+            if #classSpecDetails > 0 then
+                table.insert(specDetails, string.format("  %s: %s", className, table.concat(classSpecDetails, ", ")))
+            else
+                table.insert(specDetails, string.format("  %s: %d spec(s)", className, specCount))
+            end
+        end
+        
+        if #specDetails > 0 then
+            table.insert(details, "")
+            table.insert(details, L["CONTAINS_DATA_FOR"] or "Contains data for:")
+            for _, detail in ipairs(specDetails) do
+                table.insert(details, detail)
+            end
+        end
+    end
+    
+    frame.detailsInfo:SetText(table.concat(details, "\n"))
+    
+    -- Advertencias dinámicas
+    local warnings = {}
+    if previewData.specs > 5 then
+        table.insert(warnings, string.format(L["LARGE_IMPORT_WARNING"] or "Large import (%d specs) - may take a moment", previewData.specs))
+    else
+        table.insert(warnings, L["WILL_ADD_NEW_DATA"] or "This will add new data to your custom sheets")
+    end
+    
+    table.insert(warnings, L["EXISTING_DATA_OVERWRITTEN"] or "Existing data with same class/spec may be overwritten (Replace mode)")
+    table.insert(warnings, L["MERGE_MODE_PRESERVES"] or "Merge mode will preserve existing data when possible")
+    
+    frame.warningText:SetText(table.concat(warnings, "\n"))
+    
+    -- Ajustar altura del contenido dinámicamente
+    local baseHeight = 200
+    local extraHeight = math.max(0, (#details - 3) * 12) + math.max(0, (#warnings - 3) * 12)
+    frame.infoContent:SetHeight(baseHeight + extraHeight)
+end
+
+--- Obtiene detalles completos de los datos importados
+---@param importData string
+---@return boolean success, table|nil data
+function module:GetImportedDataDetails(importData)
+    -- Decodificar datos
+    local decodedData
+    
+    if LibDeflate then
+        decodedData = LibDeflate:DecodeForPrint(importData)
+        if decodedData then
+            decodedData = LibDeflate:DecompressDeflate(decodedData)
+        end
+    else
+        decodedData = self:DecodeBase64(importData)
+    end
+    
+    if not decodedData then
+        return false, nil
+    end
+    
+    -- Deserializar con AceSerializer
+    local success, importedData = AceSerializer:Deserialize(decodedData)
+    if not success or not importedData then
+        return false, nil
+    end
+    
+    return true, importedData
+end
+
+--- Obtiene el nombre legible de una clase (localizado)
+---@param classID number
+---@return string className
+function module:GetClassName(classID)
+    local classInfo = C_CreatureInfo.GetClassInfo(classID)
+    if classInfo and classInfo.className then
+        return classInfo.className
+    end
+    -- Fallback a tabla hardcodeada si la API falla
+    return CLASS_NAMES[classID] or ("Class " .. tostring(classID))
+end
+
+--- Obtiene el nombre legible de una especialización (localizado)
+---@param specID number
+---@return string specName  
+function module:GetSpecName(specID)
+--[[ 
+    https://warcraft.wiki.gg/wiki/API_C_SpecializationInfo.GetSpecializationInfo (index) 
+    https://warcraft.wiki.gg/wiki/API_GetSpecializationInfoByID
+    id, name, description, icon, role, classFile, className = GetSpecializationInfoByID(specID)
+]]--
+    local _, specName = GetSpecializationInfoByID(specID)
+    if specName and type(specName) == "string" and specName ~= "" then
+        return specName
+    end
+    -- Fallback a tabla hardcodeada si la API falla
+    if SPEC_NAMES[specID] then
+        return SPEC_NAMES[specID]
+    end
+    -- Último recurso: texto legible con el número
+    return "Especialización desconocida (ID: " .. tostring(specID) .. ")"
+end
+
+--- Muestra detalles completos del import (placeholder)
+---@param importData string
+function module:ShowImportDetails(importData)
+    print("|cffffd700[INFO] Detailed view not implemented yet - showing basic info|r")
+    
+    -- No mostrar los datos raw porque contienen caracteres especiales
+    local success, fullData = self:GetImportedDataDetails(importData)
+    if success and fullData then
+        print("|cffffd700[DEBUG] Import contains valid data structure|r")
+        if fullData.version then
+            print("|cffffd700[DEBUG] Export version: " .. tostring(fullData.version) .. "|r")
+        end
+        if fullData.exportType then
+            print("|cffffd700[DEBUG] Export type: " .. tostring(fullData.exportType) .. "|r")
+        end
+    else
+        print("|cffff0000[DEBUG] Failed to parse import data|r")
+    end
+    
+    -- Aquí se podría implementar una ventana más detallada
+    -- mostrando cada item, stat, etc. del setup
 end
 
 -- export.lua -- fin del archivo

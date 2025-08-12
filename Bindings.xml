@@ -1,8 +1,9 @@
 <Bindings>
-	<Binding name="MYCHEATSHEET_TOGGLE" header="MYCHEATSHEET" category="BINDING_HEADER_INTERFACE">
-		if not InCombatLockdown() then
-		TogglePlayerSpellsFrame()
-		MyCheatSheet:OnKeybinding()
-		end
+<!-- Bindings UI
+BINDING_HEADER + header:value <MYCHEATSHEET>
+BINDING_NAME   + name:value <MYCHEATSHEET_TOGGLE_UI>
+-->>
+	<Binding name="MYCHEATSHEET_TOGGLE_UI" header="MYCHEATSHEET" category="BINDING_HEADER_INTERFACE">
+		MyCheatSheet_ToggleBinding()
 	</Binding>
 </Bindings>

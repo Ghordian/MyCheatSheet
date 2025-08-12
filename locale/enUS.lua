@@ -4,17 +4,39 @@ local L = LibStub("AceLocale-3.0"):NewLocale("MyCheatSheet", "enUS", true);
 if not L then return; end
 
 -- CORE
-L["MY_CHEAT_SHEET"] = "My CheatSheet";
+L["MY_CHEAT_SHEET"] = "My CheatSheet"
+L["TOGGLE_MYCHEATSHEET_PANEL"] = "Toggle My CheatSheet UI"
+
+-- UI
 L["SELECT_CLASS"] = "Select class"
 L["SELECT_SPECIALIZATION"] = "Select Specialization";
 L["SELECT_CONTENT"] = "Select Content"
 L["NO_DATA_SELECTED"] = "Select specialization and content."
 
--- TODO
+-- IMPORT
 L["IMPORT_EXPORT"] = "Import/Export"
-L["EDIT"] = "Edit"
+L["IMPORT_PREVIEW_TITLE"] = "Import Preview"
+
+-- IMPORT PREVIEW
+L["SETUP_CONTENTS"] = "Setup Contents:"
+L["SPECIALIZATIONS_WILL_BE_IMPORTED"] = "%d specialization(s) will be imported"
+L["EQUIPMENT_AND_STAT_CONFIGS"] = "Equipment and stat configurations"
+L["COMPATIBLE_WITH_CURRENT_VERSION"] = "Compatible with current addon version"
+L["ALL_DATA_PASSED_VALIDATION"] = "All data has passed validation checks"
+L["EXPORT_VERSION"] = "Export version: %s"
+L["CONTAINS_DATA_FOR"] = "Contains data for:"
+L["IMPORT_ACTIONS"] = "Import Actions:"
+L["LARGE_IMPORT_WARNING"] = "Large import (%d specs) - may take a moment"
+L["WILL_ADD_NEW_DATA"] = "This will add new data to your custom sheets"
+L["EXISTING_DATA_OVERWRITTEN"] = "Existing data with same class/spec may be overwritten (Replace mode)"
+L["MERGE_MODE_PRESERVES"] = "Merge mode will preserve existing data when possible"
+L["VIEW_DETAILS"] = "View Details"
+L["IMPORT_MERGE"] = "Import (Merge)"
+L["REPLACE"] = "Replace"
+L["CANCEL"] = "Cancel"
 
 -- EDIT
+L["EDIT"] = "Edit"
 L["SAVE"] = "Save"
 L["CANCEL"] = "Cancel"
 L["RESET"] = "Reset"
@@ -62,5 +84,12 @@ L["CRIT"] = "Crit"
 L["STRENGTH"] = "Strength"
 L["AGILITY"] = "Agility"
 L["INTELLECT"] = "Intellect"
+
+-- MINIMAP
+L["MINIMAP_TOOLTIP_LEFT_CLICK"] = "Left click: Open cheat sheet panel"
+L["MINIMAP_TOOLTIP_MIDDLE_CLICK"] = "Middle click: Toggle minimap icon"
+L["MINIMAP_TOOLTIP_ADDON_INFO"] = "Character cheat sheet addon"
+L["MINIMAP_ICON_HIDDEN"] = "Minimap icon hidden. Use /mcs minimap to show it again."
+L["MINIMAP_ICON_SHOWN"] = "Minimap icon shown."
 
 -- enUS.lua -- fin del archivo
