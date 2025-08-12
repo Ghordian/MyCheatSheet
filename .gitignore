@@ -1,0 +1,62 @@
+# World of Warcraft Addon .gitignore
+
+# Personal configuration files
+*.user
+*.wowproj.user
+MyCheatSheet.wowproj.user
+
+# Debug and development files
+*.log
+*.tmp
+*.temp
+debug/
+logs/
+
+# Backup and temporary files
+*~
+*.bak
+*.backup
+*Copy*
+*- Copy*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+Thumbs.db
+.DS_Store
+
+# Windows system files
+desktop.ini
+ehthumbs.db
+
+# Logs folder and all contents
+logs/
+*.lua.backup
+
+# Development notes and personal files
+NOTES.md
+notes.txt
+TODO.txt
+todo.md
+.data/
+
+# Compiled or generated files
+*.pyc
+*.pyo
+__pycache__/
+
+# Package files
+*.zip
+*.rar
+*.7z
+releases/
+dist/
+
+# Local development files
+local/
+private/
+test/
+testing/
+
+# Specific files from your workspace
