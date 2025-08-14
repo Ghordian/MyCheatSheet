@@ -35,4 +35,16 @@
 ---@field selectedSpec number
 ---@field selectedContent string
 
+-- V2
+
+---@class MyCheatSheetContentV2
+---@field statsPriority table<number, MyCheatSheetStatGroup>
+---@field weapons MyCheatSheetWeapons
+---@field trinkets MyCheatSheetTrinkets
+
+---@class MyCheatSheetSpecializationDataV2
+---@field MyCheatSheetContentV2
+---@field consumables MyCheatSheetItemRow
+---@field tier MyCheatSheetTier
+
 -- types.lua -- fin del archivo

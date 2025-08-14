@@ -60,8 +60,9 @@ L["CONSUMABLES"] = "Consumibles"
 L["TIER"] = "Tier"
 
 -- UI 
-L["AUTHOR"] = "Author"
-L["UPDATED"] = "Updated"
+L["AUTHOR"] = "Autor"
+L["UPDATED"] = "Actialización"
+L["CUSTOM_INFO"] = "Info personalizada"
 
 -- CONTENT
 L["RAID"] = "Banda"

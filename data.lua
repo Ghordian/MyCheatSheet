@@ -1,6 +1,5 @@
--- data.lua
+-- data_v1.lua
 local ADDON_NAME, private = ... 
-
 -- Contains the addon's configuration and item data.
 ---@class MyCheatSheet
 local MyCheatSheet = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME);
@@ -1633,6 +1632,7 @@ private.data = {
    },
 
 };
+
 
 MyCheatSheet.data = private.data
 

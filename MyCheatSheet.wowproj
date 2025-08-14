@@ -51,6 +51,9 @@
     <Content Include="types.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ui.lua">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="validdata.lua">
       <SubType>Code</SubType>
     </Content>

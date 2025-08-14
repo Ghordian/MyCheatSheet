@@ -1,10 +1,21 @@
-﻿# deploy.ps1 - Script inteligente para copiar addon
+﻿# Función para calcular ruta relativa (compatible con PowerShell 5.1)
+function Get-RelativePath($base, $path) {
+    $base = [System.IO.Path]::GetFullPath($base)
+    $path = [System.IO.Path]::GetFullPath($path)
+    if ($path.StartsWith($base)) {
+        return $path.Substring($base.Length).TrimStart('\')
+    } else {
+        return $path
+    }
+}
+# deploy.ps1 - Script inteligente para copiar addon
 param(
     [string]$WoWPath = "D:\World of Warcraft\_retail_\Interface\AddOns"
 )
 
 $AddonName = "MyCheatSheet"
- $SourcePath = (Resolve-Path "$PSScriptRoot\..")
+$SourcePath = (Resolve-Path (Join-Path $PSScriptRoot ".."))
+$SourcePath = $SourcePath.Path
 $DestinationPath = Join-Path $WoWPath $AddonName
 $TocFile = Join-Path $SourcePath "$AddonName.toc"
 
@@ -53,12 +64,9 @@ function Get-EmbeddedFiles {
         if ($xmlContent.Ui.Script) {
             foreach ($script in $xmlContent.Ui.Script) {
                 if ($script.file) {
-                    # Construir ruta completa relativa
-                    if ($xmlRelativeDir) {
-                        $files += "$xmlRelativeDir\$($script.file)"
-                    } else {
-                        $files += $script.file
-                    }
+                    $absPath = Join-Path $xmlDir $script.file
+                    $relPath = Get-RelativePath $BasePath $absPath
+                    $files += $relPath
                 }
             }
         }
@@ -67,15 +75,10 @@ function Get-EmbeddedFiles {
         if ($xmlContent.Ui.Include) {
             foreach ($include in $xmlContent.Ui.Include) {
                 if ($include.file) {
-                    # Construir ruta completa relativa para el include
-                    $includeFile = $include.file
-                    if ($xmlRelativeDir) {
-                        $includeFile = "$xmlRelativeDir\$($include.file)"
-                    }
-                    $files += $includeFile
-                    
-                    # Procesar archivos XML incluidos recursivamente
-                    $includePath = Join-Path $BasePath $includeFile
+                    $absInclude = Join-Path $xmlDir $include.file
+                    $relInclude = Get-RelativePath $BasePath $absInclude
+                    $files += $relInclude
+                    $includePath = Join-Path $BasePath $relInclude
                     $nestedFiles = Get-EmbeddedFiles $includePath $BasePath
                     $files += $nestedFiles
                 }

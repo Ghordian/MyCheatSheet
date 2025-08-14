@@ -16,6 +16,7 @@ local L = AceLocale:GetLocale(ADDON_NAME)
 --- Editor simple para una sola subsección
 ---@param sectionTitle string
 ---@param subsectionType string "bestInSlot" o "alternatives"
+---@return bRefresh boolean
 function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
     -- Cerrar editor existente
     if self.editFrame then
@@ -53,7 +54,7 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
     editFrame:RegisterForDrag("LeftButton")
     editFrame:SetScript("OnDragStart", function(self) self:StartMoving() end)
     editFrame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
-    
+
     self.editFrame = editFrame
 
     -- Título
@@ -64,12 +65,12 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
         title:SetText(string.format("Editar %s: %s", sectionTitle, subsectionName))
     end
     title:SetPoint("TOP", 0, -15)
-    
+
     -- Instrucciones
     local instructions = editFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     instructions:SetText(L["ITEM_IDS_SEPARATED_BY_COMMAS"])
     instructions:SetPoint("TOPLEFT", 20, -50)
-    
+
     -- Obtener datos actuales
     local currentData = nil
     if subsectionType == "direct" then
@@ -80,7 +81,7 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
         currentData = self:GetSectionData(sectionKey, subsectionType)
     end
     local currentItemIDs = self:ItemIDsToString(currentData)
-    
+
     -- EditBox
     local editBox = CreateFrame("EditBox", nil, editFrame, "InputBoxTemplate")
     editBox:SetSize(350, 30)
@@ -88,7 +89,7 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
     editBox:SetText(currentItemIDs)
     editBox:SetAutoFocus(true)
     editBox:SetMaxLetters(200)
-    
+
     -- Ejemplo
     local example = editFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     example:SetText(L["EXAMPLE"] .. currentItemIDs)
@@ -104,6 +105,7 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
         self:ResetSingleSubsection(sectionTitle, subsectionType)
         editFrame:Hide()
         self.editFrame = nil
+        self.Result = true
         self:UpdateUI()
     end)
 
@@ -125,6 +127,7 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
         editFrame:Hide()
         self.editFrame = nil
         self:UpdateUI()
+        self.Result = true
     end)
 
     -- Preview de iconos en tiempo real
@@ -222,17 +225,23 @@ end
 ---@param subsectionType string
 function MyCheatSheet:ResetSingleSubsection(sectionTitle, subsectionType)
     if not MyCheatSheetDB or not MyCheatSheetDB.customOverrides then return end
-    
+
     local sectionKey = self:GetSectionKey(sectionTitle)
-    
+
     if MyCheatSheetDB.customOverrides[self.selectedClass] and
        MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec] and
        MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec][sectionKey] then
-        
-        MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec][sectionKey][subsectionType] = nil
-        
-        local subsectionName = subsectionType == "bestInSlot" and L["BEST_IN_SLOT"] or L["ALTERNATIVES"]
-        print(string.format("%s reseteado para %s", subsectionName, sectionTitle))
+
+        if sectionKey == "consumables" or subsectionType == "direct" then
+            -- Para consumables, borrar directamente itemIDs
+            MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec][sectionKey].itemIDs = nil
+            print(string.format("%s reset for %s", L["CONSUMABLES"], sectionTitle))
+        else
+          -- Para subsecciones normales
+          MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec][sectionKey][subsectionType] = nil
+          local subsectionName = subsectionType == "bestInSlot" and L["BEST_IN_SLOT"] or L["ALTERNATIVES"]
+          print(string.format("%s reset for %s", subsectionName, sectionTitle))
+        end
     end
 end
 
@@ -293,29 +302,31 @@ function MyCheatSheet:SaveSingleSubsection(sectionTitle, subsectionType, itemIDs
     if not MyCheatSheetDB then
         MyCheatSheetDB = { customOverrides = {} }
     end
-    
+
     -- Parsear los IDs primero
     local itemIDs = {}
     for itemID in string.gmatch(itemIDsText, "(%d+)") do
         table.insert(itemIDs, tonumber(itemID))
     end
-    
+
+    local subsectionTypeText = subsectionType == "bestInSlot" and L["BEST_IN_SLOT"] or subsectionType == "alternatives" and L["ALTERNATIVES"] or L["COSUMABLES"]
+
     -- Si no hay items, permitir guardar (para limpiar)
     if #itemIDs == 0 then
         self:SaveSubsectionData(sectionTitle, subsectionType, itemIDs)
-        print(string.format("|cffff9900[INFO] %s cleared for %s|r", 
-            subsectionType == "bestInSlot" and L["BEST_IN_SLOT"] or L["ALTERNATIVES"], 
+        print(string.format("|cffff9900[INFO] %s cleared for %s|r",
+            subsectionTypeText, 
             sectionTitle))
         return
     end
-    
+
     -- Validar todos los items antes de guardar
     local errors = {}
     local validItems = {}
     local sectionKey = self:GetSectionKey(sectionTitle)
-    
+
     print(string.format("Validating %d items...", #itemIDs))
-    
+
     for _, itemID in ipairs(itemIDs) do
         local isValid, errorMsg = self.validData:ValidateItem(itemID, sectionKey, self.selectedClass)
         if isValid then
@@ -324,7 +335,7 @@ function MyCheatSheet:SaveSingleSubsection(sectionTitle, subsectionType, itemIDs
             table.insert(errors, string.format("Item %d: %s", itemID, errorMsg))
         end
     end
-    
+
     -- Mostrar resultados de la validación
     if #errors > 0 then
         print("|cffff0000[ERROR] Validation errors found:|r")
@@ -335,14 +346,13 @@ function MyCheatSheet:SaveSingleSubsection(sectionTitle, subsectionType, itemIDs
                 break
             end
         end
-        
+
         if #validItems > 0 then
             print(string.format("|cffffd700Save only the %d valid items? (Invalid ones will be ignored)|r", #validItems))
             -- Guardar solo los items válidos
             self:SaveSubsectionData(sectionTitle, subsectionType, validItems)
             print(string.format("|cff00ff00[OK] %s saved for %s (%d valid items, %d ignored)|r", 
-                subsectionType == "bestInSlot" and L["BEST_IN_SLOT"] or L["ALTERNATIVES"],
-                sectionTitle, #validItems, #errors))
+                subsectionTypeText, sectionTitle, #validItems, #errors))
         else
             print("|cffff0000[ERROR] Nothing saved - all items are invalid|r")
         end
@@ -350,8 +360,7 @@ function MyCheatSheet:SaveSingleSubsection(sectionTitle, subsectionType, itemIDs
         -- Todos los items son válidos
         self:SaveSubsectionData(sectionTitle, subsectionType, itemIDs)
         print(string.format("|cff00ff00[OK] %s saved for %s - %d valid items|r", 
-            subsectionType == "bestInSlot" and L["BEST_IN_SLOT"] or L["ALTERNATIVES"],
-            sectionTitle, #itemIDs))
+            subsectionTypeText, sectionTitle, #itemIDs))
     end
 end
 
@@ -367,16 +376,21 @@ function MyCheatSheet:SaveSubsectionData(sectionTitle, subsectionType, itemIDs)
     if not MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec] then
         MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec] = {}
     end
-    
+
     local sectionKey = self:GetSectionKey(sectionTitle)
     local specData = MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec]
-    
+
     if not specData[sectionKey] then
         specData[sectionKey] = {}
     end
-    
-    -- Guardar los datos
-    specData[sectionKey][subsectionType] = { itemIDs = itemIDs }
+
+    -- Si es consumables (sin subsección), guardar directamente en itemIDs
+    if sectionKey == "consumables" or subsectionType == "direct" then
+        specData[sectionKey].itemIDs = itemIDs
+    else
+        -- Guardar los datos
+        specData[sectionKey][subsectionType] = { itemIDs = itemIDs }
+    end
 end
 
 --- Resetea las estadísticas para el contenido actual
@@ -582,22 +596,22 @@ function MyCheatSheet:SaveStatsFromText(statsText)
     if statsText == "" or statsText:find("^%-%-") then
         return false, "Empty or commented stats"
     end
-    
+
     -- Stats válidas
     local validStats = {
         STRENGTH = true, AGILITY = true, INTELLECT = true, STAMINA = true,
         CRIT = true, HASTE = true, MASTERY = true, VERSATILITY = true
     }
-    
+
     -- Operadores válidos
     local validOperators = {
-        [">"] = true, [">>"] = true, ["~"] = true
+        [">"] = true, [">>"] = true, [">="] = true, ["~"] = true, ["="] = true
     }
-    
+
     -- Parsear texto
     local statsPriority = {}
     local tokens = {}
-    
+
     -- Separar por operadores
     for token in statsText:gmatch("[^%s]+") do
         table.insert(tokens, token)

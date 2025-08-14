@@ -755,8 +755,9 @@ function module:CreateImportPreviewFrame()
     frame.detailsButton:SetText(L["VIEW_DETAILS"] or "View Details")
     frame.detailsButton:SetSize(100, 25)
     frame.detailsButton:SetPoint("BOTTOMLEFT", buttonArea, "BOTTOMLEFT", 0, 35)
+    frame.detailsButton:Disable()
     frame.detailsButton:SetScript("OnClick", function() 
-        self:ShowImportDetails(frame.importData)
+        print("|cffff8800[INFO] TODO.|r")
     end)
     
     -- Botones de importación
@@ -975,24 +976,147 @@ end
 --- Muestra detalles completos del import (placeholder)
 ---@param importData string
 function module:ShowImportDetails(importData)
-    print("|cffffd700[INFO] Detailed view not implemented yet - showing basic info|r")
-    
-    -- No mostrar los datos raw porque contienen caracteres especiales
+    -- Decodificar y deserializar los datos importados
     local success, fullData = self:GetImportedDataDetails(importData)
-    if success and fullData then
-        print("|cffffd700[DEBUG] Import contains valid data structure|r")
-        if fullData.version then
-            print("|cffffd700[DEBUG] Export version: " .. tostring(fullData.version) .. "|r")
-        end
-        if fullData.exportType then
-            print("|cffffd700[DEBUG] Export type: " .. tostring(fullData.exportType) .. "|r")
-        end
-    else
-        print("|cffff0000[DEBUG] Failed to parse import data|r")
+    if not success or not fullData or not fullData.sheets then
+        print("|cffff0000[ERROR] No valid data to show|r")
+        return
     end
-    
-    -- Aquí se podría implementar una ventana más detallada
-    -- mostrando cada item, stat, etc. del setup
+
+    -- Crear el frame de detalles si no existe
+    if not self.detailsFrame then
+        self.detailsFrame = self:CreateImportDetailsFrame()
+    end
+
+    local frame = self.detailsFrame
+    frame:Show()
+    frame:Raise()
+
+    -- Recopilar todos los (classID, specID) pares
+    local specList = {}
+    for classID, classData in pairs(fullData.sheets) do
+        for specID, specData in pairs(classData) do
+            table.insert(specList, {classID=tonumber(classID), specID=tonumber(specID), data=specData})
+        end
+    end
+    table.sort(specList, function(a, b)
+        if a.classID == b.classID then return a.specID < b.specID end
+        return a.classID < b.classID
+    end)
+
+    frame.specList = specList
+    frame.currentIndex = 1
+    frame.importData = importData
+
+    -- Función para mostrar el spec actual
+    function frame:ShowCurrentSpec()
+        local entry = self.specList[self.currentIndex]
+        if not entry then return end
+
+        -- Mostrar info de clase/spec
+        local className = module:GetClassName(entry.classID)
+        local specName = module:GetSpecName(entry.specID)
+        self.titleLabel:SetText(string.format("%s - %s", className, specName))
+
+        -- Limpiar el área de preview
+        if self.previewContainer and self.previewContainer:IsShown() then
+            self.previewContainer:Hide()
+            self.previewContainer:SetParent(nil)
+        end
+
+        -- Fallback: mostrar datos en texto (hasta que se implemente un marco de contenido independiente)
+        if not self.previewContainer or not self.previewContainer:IsShown() then
+            if self.previewContainer then
+                self.previewContainer:Hide()
+                self.previewContainer:SetParent(nil)
+            end
+            self.previewContainer = CreateFrame("Frame", nil, self, "BackdropTemplate")
+            self.previewContainer:SetPoint("TOPLEFT", self, "TOPLEFT", 20, -50)
+            self.previewContainer:SetSize(440, 320)
+            self.previewContainer:SetBackdrop({
+                bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                edgeSize = 8,
+                insets = { left = 2, right = 2, top = 2, bottom = 2 },
+            })
+            self.previewContainer:SetBackdropColor(0.1, 0.1, 0.1, 0.3)
+        end
+        self.previewContainer:Show()
+        self.previewContainer:SetParent(self)
+
+        -- Solo mostrar datos en texto plano
+        if not self.textFallback then
+            self.textFallback = self:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            self.textFallback:SetPoint("TOPLEFT", self.previewContainer, "TOPLEFT", 10, -10)
+            self.textFallback:SetWidth(420)
+            self.textFallback:SetJustifyH("LEFT")
+        end
+        self.textFallback:SetText("Vista previa visual deshabilitada temporalmente.\n\n" .. module:SerializeTable(entry.data))
+        self.textFallback:Show()
+        -- Actualizar estado de los botones
+        self.prevButton:SetEnabled(self.currentIndex > 1)
+        self.nextButton:SetEnabled(self.currentIndex < #self.specList)
+        self.counterLabel:SetText(string.format("%d / %d", self.currentIndex, #self.specList))
+    end
+
+    -- Mostrar el primer spec
+    frame:ShowCurrentSpec()
+end
+
+function module:CreateImportDetailsFrame()
+    local frame = CreateFrame("Frame", "MyCheatSheetImportDetailsFrame", UIParent, "BasicFrameTemplateWithInset")
+    frame:SetSize(500, 450)
+    frame:SetPoint("CENTER")
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    frame:SetFrameStrata("FULLSCREEN")
+    frame:SetFrameLevel(2200)
+
+    -- Título
+    frame.titleLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    frame.titleLabel:SetPoint("TOP", frame, "TOP", 0, -5)
+    frame.titleLabel:SetText("Spec Details")
+
+    -- Botones de navegación
+    frame.prevButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    frame.prevButton:SetText("< Prev")
+    frame.prevButton:SetSize(80, 22)
+    frame.prevButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 20, 15)
+    frame.prevButton:SetScript("OnClick", function(self)
+        if frame.currentIndex > 1 then
+            frame.currentIndex = frame.currentIndex - 1
+            frame:ShowCurrentSpec()
+        end
+    end)
+
+    frame.nextButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    frame.nextButton:SetText("Next >")
+    frame.nextButton:SetSize(80, 22)
+    frame.nextButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 15)
+    frame.nextButton:SetScript("OnClick", function(self)
+        if frame.currentIndex < #frame.specList then
+            frame.currentIndex = frame.currentIndex + 1
+            frame:ShowCurrentSpec()
+        end
+    end)
+
+    -- Contador
+    frame.counterLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.counterLabel:SetPoint("BOTTOM", frame, "BOTTOM", 0, 20)
+    frame.counterLabel:SetText("1 / 1")
+
+    -- Botón cerrar
+    frame.closeButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    frame.closeButton:SetText("Close")
+    frame.closeButton:SetSize(80, 22)
+    frame.closeButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, -5)
+    frame.closeButton:SetScript("OnClick", function() frame:Hide() end)
+
+    frame:Hide()
+    return frame
 end
 
 -- export.lua -- fin del archivo
