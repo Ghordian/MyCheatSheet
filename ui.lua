@@ -1,4 +1,5 @@
 -- UI logic functions moved from core.lua
+
 local ADDON_NAME, private = ... 
 
 ---@class MyCheatSheet
@@ -9,7 +10,20 @@ local AceLocale = LibStub("AceLocale-3.0")
 ---@type table<string, string>
 local L = AceLocale:GetLocale(ADDON_NAME)
 
--- Tabla de colores para cada estadística
+-- =============================
+-- Enumerados y tablas de constantes
+-- =============================
+
+-- Enumerado de IDs de sección principales
+MyCheatSheet.SECTION_IDS = {
+    STAT_PRIORITY = "STAT_PRIORITY",
+    WEAPONS = "WEAPONS",
+    TRINKETS = "TRINKETS",
+    CONSUMABLES = "CONSUMABLES",
+    TIER = "TIER",
+}
+
+-- Colores por estadística
 MyCheatSheet.statColors = {
   -- https://warcraft.wiki.gg/wiki/API_GetAttackPowerForStat
     ["INTELLECT"]   = {r = .95, g = 0.55, b = 0.73, a = 1},     -- Fucsia
@@ -19,9 +33,9 @@ MyCheatSheet.statColors = {
     ["VERSATILITY"] = {r = 0.7, g = 0.7, b = 0.7, a = 1},       -- Gris
     ["AGILITY"]     = {r = 1.0, g = 0.8, b = 0.25, a = 1},      -- Dorado
     ["STRENGTH"]    = {r = 1.0, g = 0.5, b = 0.5, a = 1},       -- Rojo claro
-};
+}; 
 
--- Tabla de iconos MÁS IDENTIFICATIVOS y ARMÓNICOS con los colores
+-- Iconos por estadística
 MyCheatSheet.statIcons = {
     ["INTELLECT"]   = "Interface\\Icons\\Spell_Arcane_Mind",               -- Cerebro arcano (fucsia/púrpura)
     ["HASTE"]       = "Interface\\Icons\\Spell_Nature_Windfury",           -- Viento verde (velocidad)
@@ -32,11 +46,45 @@ MyCheatSheet.statIcons = {
     ["STRENGTH"]    = "Interface\\Icons\\Ability_Warrior_InnerRage",       -- Furia interior (rojo/fuerza)
 };
 
+-- Tabla de lookup para parches y títulos
+local PATCH_TITLES = {
+    ["11.2.0"] = "Ghosts of K'aresh",
+    ["11.1.7"] = "Undermine",
+    ["11.1.5"] = "Undermine",
+    ["11.1.0"] = "Undermine",
+    ["11.0.7"] = "Siren Isle",
+    ["11.0.5"] = "20th Anniversary Celebration",
+    ["11.0.2"] = "The War Within",
+    ["11.0.0"] = "The War Within",
+    ["10.2.7"] = "Dark Heart",
+    ["10.2.6"] = "Plunderstorm",
+    ["10.2.5"] = "Seeds of Renewal",
+    ["10.2.0"] = "Guardians of the Dream",
+    ["10.1.7"] = "Fury Incarnate",
+    ["10.1.5"] = "fractures in Time",
+    ["10.1.0"] = "Embers of Neltharion",
+    ["10.0.5"] = "Trading Post",
+    ["10.0.2"] = "Dragonflight",
+    ["10.0.0"] = "Dragonflight Launch",
+}
+
+-- =============================
+-- Creación de la UI principal
+-- =============================
 
 --- Crea la interfaz principal del cheat sheet
 function MyCheatSheet:CreateCheatSheetUI()
+
     local frame = CreateFrame("Frame", "MyCheatSheetFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate");
-    frame:SetPoint("CENTER");
+    -- Intentar restaurar la posición guardada
+    ---@type FramePosition
+    local pos = self.db and self.db.profile and self.db.profile.ui and self.db.profile.ui.position
+    if pos and pos.point and pos.x and pos.y then
+        frame:SetPoint(pos.point, UIParent, pos.point, pos.x, pos.y)
+    else
+        frame:SetPoint("CENTER")
+        self:DebugPrint("No FramePosition", self.db, self.db.profile, self.db.profile.ui, self.db.profile.ui.position)
+    end
     frame:SetSize(680, 580);
     frame:Hide();
 
@@ -49,13 +97,14 @@ function MyCheatSheet:CreateCheatSheetUI()
 
     frame:SetBackdropColor(0.1, 0.1, 0.1, 1);
     frame:SetMovable(true);
+    frame:EnableMouse(true);
     frame:SetClampedToScreen(true);
-    frame:SetScript("OnMouseDown", function(self)
-        if IsMouseButtonDown("LeftButton") then
-            self:StartMoving();
-        end
+    frame:RegisterForDrag("LeftButton");
+    frame:SetScript("OnDragStart", frame.StartMoving);
+    frame:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing();
+        MyCheatSheet:SaveFramePosition();
     end);
-    frame:SetScript("OnMouseUp", function(self) self:StopMovingOrSizing(); end);
 
     if bResizableFrame then
         frame:SetResizable(true);
@@ -95,13 +144,30 @@ function MyCheatSheet:CreateCheatSheetUI()
     title:SetFontObject(titleFont);
 
 
+
     local closeButton = CreateFrame("Button", "MyCheatSheetTitleCloseButton", frame, "UIPanelCloseButton");
     closeButton:SetPoint("TOPRIGHT", -12, -12);
     closeButton:SetScript("OnClick", function()
         frame:Hide();
     end);
-    -- Refuerzo: guardar referencia y exponer para otras funciones
     frame.closeButton = closeButton
+
+    -- Botón de edición de layout
+    local editLayoutButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    editLayoutButton:SetSize(90, 24)
+    editLayoutButton:SetText(L["EDIT_LAYOUT"])
+    editLayoutButton:SetPoint("RIGHT", closeButton, "LEFT", -8, 0)
+    editLayoutButton:SetScript("OnClick", function()
+        MyCheatSheet:ToggleLayoutEditMode()
+    editLayoutButton:SetText(MyCheatSheet.isLayoutEditMode and L["SAVE_LAYOUT"] or L["EDIT_LAYOUT"])
+    end)
+    frame.editLayoutButton = editLayoutButton
+    -- Asegura que el texto del botón refleje el estado al mostrar la ventana
+    frame:HookScript("OnShow", function(self)
+        if self.editLayoutButton then
+            self.editLayoutButton:SetText(MyCheatSheet.isLayoutEditMode and L["SAVE_LAYOUT"] or L["EDIT_LAYOUT"])
+        end
+    end)
 
     frame:SetSize(700, 680);
 
@@ -117,6 +183,9 @@ function MyCheatSheet:CreateCheatSheetUI()
     end)
 end
 
+-- =============================
+-- Contenido y dropdowns de la UI
+-- =============================
 --- Crea el contenido inicial de la interfaz de usuario (dropdowns, scroll frame).
 function MyCheatSheet:CreateUIContent()
     local parent = self.MyCheatSheetFrame;
@@ -194,38 +263,66 @@ function MyCheatSheet:CreateUIContent()
     editButton:Hide();
 end
 
+-- =============================
+-- Dropdowns: actualización y lógica de selección
+-- =============================
 --- 227; Actualiza todos los dropdowns
 function MyCheatSheet:UpdateDropdowns()
     self:UpdateClassDropdown();
 end
 
---- 231;
+--[[
+ANOMALÍA: Función local no agrupada bajo sección clara y sin comentario de firma.
+Revisar si debe documentarse, moverse o eliminarse en refactorización.
+]]
 local function SelectClassDropdown(info)
     if MyCheatSheet.selectedClass then
-        self:DebugPrint("selectedClass", MyCheatSheet.selectedClass)
         local classInfo = C_CreatureInfo.GetClassInfo(MyCheatSheet.selectedClass);
         if classInfo then
             UIDropDownMenu_SetText(MyCheatSheet.classDropdown, classInfo.className);
         end
+        -- Preseleccionar primer spec
+        local classSpecs = MyCheatSheet.data.sheets[MyCheatSheet.selectedClass]
+        if classSpecs then
+            local firstSpec = nil
+            for specID in pairs(classSpecs) do
+                firstSpec = specID; break
+            end
+            MyCheatSheet.selectedSpec = firstSpec
+            -- Preseleccionar primer content
+            if firstSpec and classSpecs[firstSpec] then
+                local firstContent = nil
+                for contentKey in pairs(classSpecs[firstSpec]) do
+                    firstContent = contentKey; break
+                end
+                MyCheatSheet.selectedContent = firstContent
+            else
+                MyCheatSheet.selectedContent = nil
+            end
+        else
+            MyCheatSheet.selectedSpec = nil
+            MyCheatSheet.selectedContent = nil
+        end
     end
-    if MyCheatSheet.selectedSpec == nil then
-        UIDropDownMenu_SetText(MyCheatSheet.specDropdown, L["SELECT_SPECIALIZATION"]);
-    end
-    if MyCheatSheet.selectedContent == nil then
-        UIDropDownMenu_SetText(MyCheatSheet.contentDropdown, L["SELECT_CONTENT"]);
-    end
-
+    -- Actualizar dropdowns
     MyCheatSheet:UpdateSpecDropdown();
+    MyCheatSheet:UpdateContentDropdown();
 end
 
 --- 250; Actualiza el dropdown de clases
+--[[
+ANOMALÍA: Falta comentario de firma EmmyLua en función pública.
+]]
 function MyCheatSheet:UpdateClassDropdown()
     UIDropDownMenu_Initialize(self.classDropdown, function(frame, level, menuList)
         for classID in pairs(MyCheatSheet.data.sheets) do
             local classInfo = C_CreatureInfo.GetClassInfo(classID);
             if classInfo then
                 local info = UIDropDownMenu_CreateInfo()
-                info.text = classInfo.className;
+                local classFile = classInfo.classFile
+                local color = RAID_CLASS_COLORS and classFile and RAID_CLASS_COLORS[classFile] or {r=1,g=1,b=1}
+                local colorCode = string.format("|cff%02x%02x%02x", color.r*255, color.g*255, color.b*255)
+                info.text = colorCode .. classInfo.className .. "|r"
                 info.value = classID;
                 info.func = function(frame, arg1, arg2)
                     MyCheatSheet.selectedClass = frame.value;
@@ -233,7 +330,7 @@ function MyCheatSheet:UpdateClassDropdown()
                     MyCheatSheet.selectedContent = nil;
                     SelectClassDropdown(frame);
                 end;
-                info.checked = (classID == self.selectedClass);
+                info.checked = (classID == MyCheatSheet.selectedClass);
                 UIDropDownMenu_AddButton(info, level);
             end
         end
@@ -249,7 +346,10 @@ function MyCheatSheet:UpdateClassDropdown()
     self:UpdateSpecDropdown();
 end
 
---- 281;
+--[[
+ANOMALÍA: Función local no agrupada bajo sección clara y sin comentario de firma.
+Revisar si debe documentarse, moverse o eliminarse en refactorización.
+]]
 local function SelectSpecDropdown(info)
     MyCheatSheet:DebugPrint("SelectSpecDropdown", info.value)
     UIDropDownMenu_SetText(MyCheatSheet.specDropdown, info.text);
@@ -267,14 +367,18 @@ local function SelectSpecDropdown(info)
 end
 
 --- 298; Actualiza el dropdown de especialización
+--[[
+ANOMALÍA: Falta comentario de firma EmmyLua en función pública.
+]]
 function MyCheatSheet:UpdateSpecDropdown()
     UIDropDownMenu_Initialize(self.specDropdown, function(self, level, menuList)
         if MyCheatSheet.selectedClass and MyCheatSheet.data.sheets[MyCheatSheet.selectedClass] then
             for specID in pairs(MyCheatSheet.data.sheets[MyCheatSheet.selectedClass]) do
-                local _, specLocal = GetSpecializationInfoByID(specID);
+                local _, specLocal, _, icon = GetSpecializationInfoByID(specID);
                 if specLocal then
                     local info = UIDropDownMenu_CreateInfo()
-                    info.text = specLocal;
+                    local iconMarkup = icon and ("|T"..icon..":18:18:0:0:64:64:4:60:4:60|t ") or ""
+                    info.text = iconMarkup .. specLocal;
                     info.value = specID;
                     info.func = function(frame, arg1, arg2)
                         MyCheatSheet.selectedSpec = frame.value;
@@ -299,6 +403,9 @@ function MyCheatSheet:UpdateSpecDropdown()
 end
 
 --- 330; Maneja la selección de contenido de forma inteligente
+--[[
+ANOMALÍA: Falta comentario de firma EmmyLua en función pública.
+]]
 function MyCheatSheet:UpdateContentSelection()
     local selectedClass = self.selectedClass;
     local selectedSpec = self.selectedSpec;
@@ -324,13 +431,19 @@ function MyCheatSheet:UpdateContentSelection()
     self:UpdateContentDropdown();
 end
 
---- 356; 
+--[[
+ANOMALÍA: Función local no agrupada bajo sección clara y sin comentario de firma.
+Revisar si debe documentarse, moverse o eliminarse en refactorización.
+]]
 local function SelectContentDropdown(info)
   UIDropDownMenu_SetText(MyCheatSheet.contentDropdown, info.text);
   MyCheatSheet:UpdateUI();
 end
 
 --- 362; Actualiza el dropdown de contenido
+--[[
+ANOMALÍA: Falta comentario de firma EmmyLua en función pública.
+]]
 function MyCheatSheet:UpdateContentDropdown()
     UIDropDownMenu_Initialize(self.contentDropdown, function(self, level, menuList)
         if MyCheatSheet.selectedClass and MyCheatSheet.selectedSpec and MyCheatSheet.data.sheets[MyCheatSheet.selectedClass][MyCheatSheet.selectedSpec].statsByContent then
@@ -357,6 +470,9 @@ function MyCheatSheet:UpdateContentDropdown()
     MyCheatSheet:UpdateUI();
 end
 
+-- =============================
+-- Renderizado dinámico de secciones según layout
+-- =============================
 --- 502; Actualiza toda la interfaz de usuario con los datos actuales
 function MyCheatSheet:UpdateUI()
     local selectedClass = self.selectedClass;
@@ -397,67 +513,96 @@ function MyCheatSheet:UpdateUI()
         end
     end
 
-    if statData then
-        yOffset = yOffset + self:CreateStatPriorityRowWithCustomIcon(self.contentFrame, statData.statsPriority, yOffset, L["STAT_PRIORITY"], isCustomStats);
-        yOffset = yOffset + padding;
+    -- Renderizado dinámico según layout
+    local layout = self.db.profile.layout
+    local sections = layout and layout.sections
+    local pintadas = 0
+    for idx, section in ipairs(sections) do
+        if section.visible or self.isLayoutEditMode then
+            pintadas = pintadas + 1
+            local isFirst = idx == 1
+            local isLast = idx == #sections
+            local sectionYOffset = yOffset
+            -- Render sección según id
+            local sectionFrame = nil
+            if section.id == MyCheatSheet.SECTION_IDS.STAT_PRIORITY and statData then
+                local sectionFrameHeight, sectionFrame = self:CreateStatPriorityRowWithCustomIcon(self.contentFrame, statData.statsPriority, yOffset, L["STAT_PRIORITY"], isCustomStats);
+                yOffset = yOffset + sectionFrameHeight;
+                if self.isLayoutEditMode and sectionFrame then
+                    self:CreateSectionEditButtons(sectionFrame, 0, section.id, isFirst, isLast, section.visible)
+                end
+                yOffset = yOffset + padding;
+            elseif section.id == MyCheatSheet.SECTION_IDS.WEAPONS then
+                local weaponData = {};
+                local bestWeapons, isCustomBis = self:GetSectionData("weapons", "bestInSlot")
+                if bestWeapons and bestWeapons.itemIDs and #bestWeapons.itemIDs > 0 then
+                    tinsert(weaponData, { title = L["BEST_IN_SLOT"], itemIDs = bestWeapons.itemIDs, isCustom = isCustomBis });
+                end
+                local altWeapons, isCustomAlt = self:GetSectionData("weapons", "alternatives")
+                if altWeapons and altWeapons.itemIDs and #altWeapons.itemIDs > 0 then
+                    tinsert(weaponData, { title = L["ALTERNATIVES"], itemIDs = altWeapons.itemIDs, isCustom = isCustomAlt });
+                end
+                if #weaponData > 0 or self.isLayoutEditMode then
+                    local sectionFrameHeight, frame = self:CreateItemSection(self.contentFrame, yOffset, L["WEAPONS"], weaponData);
+                    yOffset = yOffset + sectionFrameHeight;
+                    sectionFrame = frame
+                    yOffset = yOffset + padding;
+                end
+            elseif section.id == MyCheatSheet.SECTION_IDS.TRINKETS then
+                local trinketData = {};
+                local bestTrinkets, isCustomBisTrinkets = self:GetSectionData("trinkets", "bestInSlot")
+                if bestTrinkets and bestTrinkets.itemIDs and #bestTrinkets.itemIDs > 0 then
+                    tinsert(trinketData, { title = L["BEST_IN_SLOT"], itemIDs = bestTrinkets.itemIDs, isCustom = isCustomBisTrinkets });
+                end
+                local altTrinkets, isCustomAltTrinkets = self:GetSectionData("trinkets", "alternatives")
+                if altTrinkets and altTrinkets.itemIDs and #altTrinkets.itemIDs > 0 then
+                    tinsert(trinketData, { title = L["ALTERNATIVES"], itemIDs = altTrinkets.itemIDs, isCustom = isCustomAltTrinkets });
+                end
+                if #trinketData > 0 or self.isLayoutEditMode then
+                    local sectionFrameHeight, frame = self:CreateItemSection(self.contentFrame, yOffset, L["TRINKETS"], trinketData);
+                    yOffset = yOffset + sectionFrameHeight;
+                    sectionFrame = frame
+                    yOffset = yOffset + padding;
+                end
+            elseif section.id == MyCheatSheet.SECTION_IDS.CONSUMABLES then
+                local consumablesItems, isCustomConsumables = self:GetSectionData("consumables")
+                if (consumablesItems and consumablesItems.itemIDs and #consumablesItems.itemIDs > 0) or self.isLayoutEditMode then
+                    local consumablesData = {
+                        { title = "", itemIDs = consumablesItems and consumablesItems.itemIDs or {}, isCustom = isCustomConsumables },
+                    };
+                    local sectionFrameHeight, frame = self:CreateItemSection(self.contentFrame, yOffset, L["CONSUMABLES"], consumablesData);
+                    yOffset = yOffset + sectionFrameHeight;
+                    sectionFrame = frame
+                    yOffset = yOffset + padding;
+                end
+            elseif section.id == MyCheatSheet.SECTION_IDS.TIER then
+                local tierData = {};
+                local bestInSlotTier, isCustomTierBis = self:GetSectionData("tier", "bestInSlot");
+                if bestInSlotTier and bestInSlotTier.itemIDs and #bestInSlotTier.itemIDs > 0 then
+                    tinsert(tierData, { title = L["BEST_IN_SLOT"], itemIDs = bestInSlotTier.itemIDs, isCustom = isCustomTierBis });
+                end
+                if #tierData > 0 or self.isLayoutEditMode then
+                    local sectionFrameHeight, frame = self:CreateItemSection(self.contentFrame, yOffset, L["TIER"], tierData);
+                    yOffset = yOffset + sectionFrameHeight;
+                    sectionFrame = frame
+                    yOffset = yOffset + padding;
+                end
+            end
+            -- Botones de edición de layout
+            if self.isLayoutEditMode and sectionFrame then
+                self:CreateSectionEditButtons(sectionFrame, 0, section.id, isFirst, isLast, section.visible)
+            end
+        end
     end
 
-    -- WEAPONS
-    local weaponData = {};
-    local bestWeapons, isCustomBis = self:GetSectionData("weapons", "bestInSlot")
-    if bestWeapons and bestWeapons.itemIDs and #bestWeapons.itemIDs > 0 then
-        tinsert(weaponData, { title = L["BEST_IN_SLOT"], itemIDs = bestWeapons.itemIDs, isCustom = isCustomBis });
-    end
-    local altWeapons, isCustomAlt = self:GetSectionData("weapons", "alternatives")
-    if altWeapons and altWeapons.itemIDs and #altWeapons.itemIDs > 0 then
-        tinsert(weaponData, { title = L["ALTERNATIVES"], itemIDs = altWeapons.itemIDs, isCustom = isCustomAlt });
-    end
-    if #weaponData > 0 then
-        yOffset = yOffset + self:CreateItemSection(self.contentFrame, yOffset, L["WEAPONS"], weaponData);
-        yOffset = yOffset + padding;
-    end
-
-    -- TRINKETS
-    local trinketData = {};
-    local bestTrinkets, isCustomBisTrinkets = self:GetSectionData("trinkets", "bestInSlot")
-    if bestTrinkets and bestTrinkets.itemIDs and #bestTrinkets.itemIDs > 0 then
-        tinsert(trinketData, { title = L["BEST_IN_SLOT"], itemIDs = bestTrinkets.itemIDs, isCustom = isCustomBisTrinkets });
-    end
-    local altTrinkets, isCustomAltTrinkets = self:GetSectionData("trinkets", "alternatives")
-    if altTrinkets and altTrinkets.itemIDs and #altTrinkets.itemIDs > 0 then
-        tinsert(trinketData, { title = L["ALTERNATIVES"], itemIDs = altTrinkets.itemIDs, isCustom = isCustomAltTrinkets });
-    end
-    if #trinketData > 0 then
-        yOffset = yOffset + self:CreateItemSection(self.contentFrame, yOffset, L["TRINKETS"], trinketData);
-        yOffset = yOffset + padding;
-    end
-
-    -- CONSUMABLES
-    local consumablesItems, isCustomConsumables = self:GetSectionData("consumables")
-    if consumablesItems and consumablesItems.itemIDs and #consumablesItems.itemIDs > 0 then
-        local consumablesData = {
-            { title = "", itemIDs = consumablesItems.itemIDs, isCustom = isCustomConsumables },
-        };
-        yOffset = yOffset + self:CreateItemSection(self.contentFrame, yOffset, L["CONSUMABLES"], consumablesData);
-        yOffset = yOffset + padding;
-    end
-
-    -- TIER
-    local tierData = {};
-    local bestInSlotTier, isCustomTierBis = self:GetSectionData("tier", "bestInSlot");
-    if bestInSlotTier and bestInSlotTier.itemIDs and #bestInSlotTier.itemIDs > 0 then
-        tinsert(tierData, { title = L["BEST_IN_SLOT"], itemIDs = bestInSlotTier.itemIDs, isCustom = isCustomTierBis });
-    end
-    if #tierData > 0 then
-        yOffset = yOffset + self:CreateItemSection(self.contentFrame, yOffset, L["TIER"], tierData);
-        yOffset = yOffset + padding;
-    end
+    -- =============================
+    -- Renderizado de secciones y utilidades de UI
+    -- =============================
 
     -- Agregar información del autor y fecha de actualización al final
-    if specData.author or specData.updated then
+    if specData and (specData.author or specData.updated) then
         yOffset = yOffset + self:CreateSheetInfoFooter(self.contentFrame, yOffset, specData);
     end
-
     local extraPadding = 0;
     self.contentFrame:SetSize(self.scrollFrame:GetWidth() - extraPadding, yOffset);
 end
@@ -468,8 +613,8 @@ end
 ---@param specData table
 ---@return number footerHeight La altura del pie de página creado.
 function MyCheatSheet:CreateSheetInfoFooter(parent, yOffset, specData)
-    local footerHeight = 30;
-    local footerFrame = CreateFrame("Frame", nil, parent, "BackdropTemplate");
+    local footerHeight = 36;
+    local footerFrame = CreateFrame("Frame", "SheetFooterFrame", parent, "BackdropTemplate");
     footerFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -yOffset);
     footerFrame:SetSize(parent:GetWidth() - 20, footerHeight);
     footerFrame:Show();
@@ -477,35 +622,60 @@ function MyCheatSheet:CreateSheetInfoFooter(parent, yOffset, specData)
     footerFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        edgeSize = 8,
-        insets = { left = 2, right = 2, top = 2, bottom = 2 },
-    });
-    footerFrame:SetBackdropColor(0.1, 0.1, 0.1, 0.3);
+        edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    footerFrame:SetBackdropColor(0.2, 0.2, 0.2, 0.5);
 
-    local infoText = "";
-    
+    -- Define tus colores
+    local clrBlue   = "|cff4da6ff"
+    local clrYellow = "|cfff0d000"
+    local clrGreen  = "|cff00ff00"
+    local clrWhite  = "|cffffffff"
+    local clrReset  = "|r"
+
+    local infoText = ""
+    local patchText = ""
+    -- Usar patchVersion como campo principal
+    if specData.patchVersion then
+        local version = tostring(specData.patchVersion)
+        local title = PATCH_TITLES[version]
+        patchText = L["PATCH"] .. " " .. clrBlue .. version .. clrReset
+        if title and title ~= "" then
+            patchText = patchText .. ": " .. clrWhite .. title .. clrReset
+        end
+    end
+    if patchText ~= "" then
+        infoText = patchText
+    end
+
     if specData.author then
-        infoText = L["AUTHOR"] .. ": " .. specData.author;
+        if infoText ~= "" then
+            infoText = infoText .. "  |  "
+        end
+        infoText = infoText .. L["AUTHOR"] .. ": " .. clrGreen .. specData.author .. clrReset
     end
 
     if specData.updated then
-        local updatedText = L["UPDATED"] .. ": " .. specData.updated;
+        local updatedText = L["UPDATED"] .. ": " .. clrYellow .. specData.updated .. clrReset
         if infoText ~= "" then
-            infoText = infoText .. "  |  " .. updatedText;
+            infoText = infoText .. "  |  " .. updatedText
         else
-            infoText = updatedText;
+            infoText = updatedText
         end
     end
 
     if infoText ~= "" then
-        local infoString = footerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
-        infoString:SetText(infoText);
-        infoString:SetTextColor(0.7, 0.7, 0.7, 1);
-        infoString:SetPoint("CENTER", footerFrame, "CENTER", 0, 0);
-        infoString:SetJustifyH("CENTER");
+        local infoString = footerFrame:CreateFontString("FooterFrameInfoString", "OVERLAY", "GameFontNormal")
+        infoString:SetText(infoText)
+        infoString:SetJustifyH("CENTER")
+        infoString:SetTextColor(0.7, 0.7, 0.7, 1)
+        local padding = 8
+        infoString:SetPoint("TOPLEFT", footerFrame, "TOPLEFT", padding, -padding)
+        infoString:SetPoint("BOTTOMRIGHT", footerFrame, "BOTTOMRIGHT", -padding, padding)
     end
 
-    return footerHeight;
+    return footerHeight
 end
 
 --- 670; Crea una fila de prioridad de estadísticas en la UI, mostrando un icono de estrella si la info es personalizada
@@ -515,6 +685,7 @@ end
 ---@param title string
 ---@param isCustomStats boolean Si es true, muestra el icono de estrella a la izquierda del título
 ---@return number rowHeight La altura de la fila creada.
+---@return Frame rowFrame El frame creado para la fila.
 function MyCheatSheet:CreateStatPriorityRowWithCustomIcon(parent, statGroups, yOffset, title, isCustomStats)
     local rowHeight = 50;
     local rowFrame = CreateFrame("Frame", nil, parent, "BackdropTemplate");
@@ -557,9 +728,9 @@ function MyCheatSheet:CreateStatPriorityRowWithCustomIcon(parent, statGroups, yO
     titleString:SetPoint("TOPLEFT", titleXOffset, titleYOffset);
 
     local editStatsButton = CreateFrame("Button", nil, rowFrame, "UIPanelButtonTemplate")
-    editStatsButton:SetText("Edit")
+    editStatsButton:SetText(L["EDIT_STATS"])
     editStatsButton:SetSize(50, 20)
-    editStatsButton:SetPoint("TOPRIGHT", rowFrame, "TOPRIGHT", -10, -6)
+    editStatsButton:SetPoint("TOPRIGHT", rowFrame, "TOPRIGHT", -4, -4)
     editStatsButton:SetScript("OnClick", function()
         self:OpenStatsEditor()
     end)
@@ -591,8 +762,9 @@ function MyCheatSheet:CreateStatPriorityRowWithCustomIcon(parent, statGroups, yO
         end
     end
 
-    return rowHeight;
+    return rowHeight, rowFrame;
 end
+
 
 --- Crea una fila de prioridad de estadísticas en la UI, mostrando un icono de estrella si la info es personalizada
 ---@param parent Frame
@@ -665,6 +837,7 @@ end
 ---@param title string
 ---@param subsections table<number, table>
 ---@return number sectionHeight La altura de la sección creada.
+---@return Frame sectionFrame Frame de la sección creada
 function MyCheatSheet:CreateItemSection(parent, yOffset, title, subsections)
     local itemSize = 40;
     local itemPadding = 5;
@@ -738,7 +911,7 @@ function MyCheatSheet:CreateItemSection(parent, yOffset, title, subsections)
 
         -- Botón BiS (PRIMERO)
         local editBisButton = CreateFrame("Button", nil, sectionFrame, "UIPanelButtonTemplate")
-        editBisButton:SetText("BiS")
+    editBisButton:SetText(L["BIS"])
         editBisButton:SetSize(buttonWidth, 20)
         editBisButton:SetPoint("TOPRIGHT", sectionFrame, "TOPRIGHT", -4, -4)
         editBisButton:SetScript("OnClick", function()
@@ -748,7 +921,7 @@ function MyCheatSheet:CreateItemSection(parent, yOffset, title, subsections)
         -- Botón Alt (SEGUNDO, solo si existe)
         if hasAlternatives then
             local editAltButton = CreateFrame("Button", nil, sectionFrame, "UIPanelButtonTemplate")
-            editAltButton:SetText("Alt")
+            editAltButton:SetText(L["ALT"])
             editAltButton:SetSize(buttonWidth, 20)
             editAltButton:SetPoint("RIGHT", editBisButton, "LEFT", -buttonSpacing, 0)
             editAltButton:SetScript("OnClick", function()
@@ -776,7 +949,7 @@ function MyCheatSheet:CreateItemSection(parent, yOffset, title, subsections)
             local currentSubYOffset = -currentHeight;
 
             if subSection.title and subSection.title ~= "" then
-                local subtitleString = sectionFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
+                local subtitleString = sectionFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
                 local subSection_title = subSection.title
                 if subSection.isCustom then
                   subSection_title = "|cffffff00*|r" .. subSection_title
@@ -840,9 +1013,12 @@ function MyCheatSheet:CreateItemSection(parent, yOffset, title, subsections)
     sectionFrame:SetSize(parent:GetWidth() - 20, currentHeight);
     sectionFrame:Show();
 
-    return sectionFrame:GetHeight();
+    return sectionFrame:GetHeight(), sectionFrame;
 end
 
+-- =============================
+-- Importación y exportación de datos
+-- =============================
 --- 1148; Abre el panel de importación y exportación
 function MyCheatSheet:OpenImportExportPanel()
     -- Crear o mostrar el panel de Import/Export
@@ -889,18 +1065,18 @@ function MyCheatSheet:CreateImportExportFrame()
     
     -- Título
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    frame.title:SetText("Import / Export")
+    frame.title:SetText(L["IMPORT_EXPORT_TITLE"])
     frame.title:SetPoint("TOP", frame, "TOP", 0, -5)
     
     -- Sección Export
     local exportLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    exportLabel:SetText("Export")
+    exportLabel:SetText(L["EXPORT"])
     exportLabel:SetPoint("TOPLEFT", frame, "TOPLEFT", 25, -40)
     exportLabel:SetTextColor(0.8, 1, 0.8)
     
     -- Botones Export
     local exportSpecButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    exportSpecButton:SetText("Export Current Spec")
+    exportSpecButton:SetText(L["EXPORT_CURRENT_SPEC"])
     exportSpecButton:SetSize(180, 25)
     exportSpecButton:SetPoint("TOPLEFT", exportLabel, "BOTTOMLEFT", 0, -10)
     exportSpecButton:SetScript("OnClick", function()
@@ -914,7 +1090,7 @@ function MyCheatSheet:CreateImportExportFrame()
     end)
     
     local exportClassButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    exportClassButton:SetText("Export Current Class")
+    exportClassButton:SetText(L["EXPORT_CURRENT_CLASS"])
     exportClassButton:SetSize(180, 25)
     exportClassButton:SetPoint("TOPLEFT", exportSpecButton, "BOTTOMLEFT", 0, -5)
     exportClassButton:SetScript("OnClick", function()
@@ -928,7 +1104,7 @@ function MyCheatSheet:CreateImportExportFrame()
     end)
     
     local exportAllButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    exportAllButton:SetText("Export All Data")
+    exportAllButton:SetText(L["EXPORT_ALL_DATA"])
     exportAllButton:SetSize(180, 25)
     exportAllButton:SetPoint("TOPLEFT", exportClassButton, "BOTTOMLEFT", 0, -5)
     exportAllButton:SetScript("OnClick", function()
@@ -939,7 +1115,7 @@ function MyCheatSheet:CreateImportExportFrame()
     
     -- Sección Import
     local importLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    importLabel:SetText("Import")
+    importLabel:SetText(L["IMPORT"])
     importLabel:SetPoint("TOPLEFT", exportAllButton, "BOTTOMLEFT", 0, -25)
     importLabel:SetTextColor(0.8, 0.8, 1)
     
@@ -959,23 +1135,23 @@ function MyCheatSheet:CreateImportExportFrame()
     importEditBox:SetMultiLine(true)
     importEditBox:SetAutoFocus(false)
     importEditBox:SetFontObject(ChatFontNormal)
-    importEditBox:SetText("Paste export string here...")
+    importEditBox:SetText(L["PASTE_EXPORT_STRING"])
     importEditBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
     importEditBox:SetScript("OnEditFocusGained", function(self)
-        if self:GetText() == "Paste export string here..." then
+        if self:GetText() == L["PASTE_EXPORT_STRING"] then
             self:SetText("")
         end
     end)
     importEditBox:SetScript("OnEditFocusLost", function(self)
         if self:GetText() == "" then
-            self:SetText("Paste export string here...")
+            self:SetText(L["PASTE_EXPORT_STRING"])
         end
     end)
     
     importScrollFrame:SetScrollChild(importEditBox)
     
     local importButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    importButton:SetText("Preview Import")
+    importButton:SetText(L["PREVIEW_IMPORT"])
     importButton:SetSize(120, 25) -- Más ancho
     importButton:SetPoint("TOPLEFT", importBorder, "BOTTOMLEFT", 0, -10)
     importButton:SetScript("OnClick", function()
@@ -990,7 +1166,7 @@ function MyCheatSheet:CreateImportExportFrame()
     end)
     
     local mergeButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    mergeButton:SetText("Quick Merge")
+    mergeButton:SetText(L["QUICK_MERGE"])
     mergeButton:SetSize(100, 25) -- Más ancho
     mergeButton:SetPoint("LEFT", importButton, "RIGHT", 10, 0)
     mergeButton:SetScript("OnClick", function()
@@ -1006,22 +1182,20 @@ function MyCheatSheet:CreateImportExportFrame()
     
     -- Sección Custom Data
     local customLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    customLabel:SetText("Custom Data")
+    customLabel:SetText(L["CUSTOM_DATA"])
     customLabel:SetPoint("TOPLEFT", importButton, "BOTTOMLEFT", 0, -25)
     customLabel:SetTextColor(1, 0.8, 0.8)
     
     local customListButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    customListButton:SetText("List Custom Sheets")
+    customListButton:SetText(L["LIST_CUSTOM_SHEETS"])
     customListButton:SetSize(180, 25)
     customListButton:SetPoint("TOPLEFT", customLabel, "BOTTOMLEFT", 0, -10)
     customListButton:SetScript("OnClick", function()
-        if self.export then
-            self.export:HandleCustomCommand({"custom", "list"})
-        end
+        MyCheatSheet:ShowCustomSheetsPanel()
     end)
-    
+
     local customClearButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    customClearButton:SetText("Clear All Custom Data")
+    customClearButton:SetText(L["CLEAR_ALL_CUSTOM_DATA"])
     customClearButton:SetSize(180, 25)
     customClearButton:SetPoint("TOPLEFT", customListButton, "BOTTOMLEFT", 0, -5)
     customClearButton:SetScript("OnClick", function()
@@ -1041,6 +1215,9 @@ function MyCheatSheet:CreateImportExportFrame()
     return frame
 end
 
+-- =============================
+-- Posicionamiento y guardado de la ventana principal
+-- =============================
 --- Delega la aplicación de posición al módulo Config
 function MyCheatSheet:ApplyFramePosition()
     if self:IsModuleEnabled("Config") then
@@ -1056,25 +1233,285 @@ function MyCheatSheet:ResetPosition()
 end
 
 --- Guarda la posición actual del frame en la base de datos
+---@return FramePosition|nil
 function MyCheatSheet:SaveFramePosition()
     if self.MyCheatSheetFrame and self.db then
         local point, _, _, x, y = self.MyCheatSheetFrame:GetPoint()
-        self.db.profile.ui.position.point = point or "CENTER"
-        self.db.profile.ui.position.x = x or 0
-        self.db.profile.ui.position.y = y or 0
-
-        self:DebugPrint(string.format("Position saved: %s %.0f,%.0f", point, x, y))
+        ---@type FramePosition
+        local pos = {
+            point = point or "CENTER",
+            x = x or 0,
+            y = y or 0
+        }
+        self.db.profile.ui.position = pos
+        self:DebugPrint(string.format("Position saved: %s %.0f,%.0f", pos.point, pos.x, pos.y))
+        return pos
     end
+    return nil
 end
 
---- Configura el guardado automático de posición al arrastrar el frame
-function MyCheatSheet:SetupFramePositionSaving()
-    if self.MyCheatSheetFrame then
-        self.MyCheatSheetFrame:SetScript("OnDragStop", function(frame)
-            frame:StopMovingOrSizing()
-            self:SaveFramePosition()
-        end)
-    end
+
+-- =============================
+-- Helpers para el modo edición de layout
+-- =============================
+
+MyCheatSheet.isLayoutEditMode = false
+
+function MyCheatSheet:ToggleLayoutEditMode()
+    self.isLayoutEditMode = not self.isLayoutEditMode
+    self:UpdateUI()
 end
 
+function MyCheatSheet:MoveSection(sectionId, direction)
+    local layout = self.db and self.db.profile and self.db.profile.layout
+    if not layout or not layout.sections then return end
+    local idx
+    for i, s in ipairs(layout.sections) do
+        if s.id == sectionId then idx = i break end
+    end
+    if not idx then return end
+    local newIdx = direction == "up" and idx - 1 or idx + 1
+    if newIdx < 1 or newIdx > #layout.sections then return end
+    layout.sections[idx], layout.sections[newIdx] = layout.sections[newIdx], layout.sections[idx]
+    self:UpdateUI()
+end
+
+function MyCheatSheet:ToggleSectionVisibility(sectionId)
+    local layout = self.db and self.db.profile and self.db.profile.layout
+    if not layout or not layout.sections then return end
+    for _, s in ipairs(layout.sections) do
+        if s.id == sectionId then
+            s.visible = not s.visible
+            break
+        end
+    end
+    self:UpdateUI()
+end
+
+-- Helper para crear botones de edición en cada sección
+function MyCheatSheet:CreateSectionEditButtons(parent, yOffset, sectionId, isFirst, isLast, isVisible)
+    local btnSize, spacing = 18, 2
+    local btns = {}
+    -- Barra de herramientas: alineados en la esquina inferior derecha
+    -- Checkbox de visibilidad
+    local visChk = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    visChk:SetSize(btnSize, btnSize)
+    visChk:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -2, 4)
+    visChk:SetChecked(isVisible)
+    visChk.tooltip = "Mostrar/Ocultar sección"
+    visChk:SetScript("OnClick", function(self)
+        MyCheatSheet:ToggleSectionVisibility(sectionId)
+    end)
+    table.insert(btns, visChk)
+
+    -- Botón Down a la izquierda del checkbox
+    local downBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    downBtn:SetSize(btnSize, btnSize)
+    downBtn:SetPoint("RIGHT", visChk, "LEFT", -spacing, 0)
+    -- Crear Texture para la flecha Down
+    local downIcon = downBtn:CreateTexture(nil, "ARTWORK")
+    downIcon:SetTexture("Interface\\AddOns\\MyCheatSheet\\Images\\DownArrow")
+    downIcon:SetSize(12, 12)
+    downIcon:SetPoint("CENTER", downBtn, "CENTER", 0, 0)
+    downBtn.icon = downIcon
+    downBtn:SetText("")
+    downBtn:SetEnabled(not isLast)
+    if isLast then
+        downIcon:SetDesaturated(true)
+        downIcon:SetAlpha(0.5)
+    else
+        downIcon:SetDesaturated(false)
+        downIcon:SetAlpha(1)
+    end
+    downBtn:SetScript("OnClick", function() MyCheatSheet:MoveSection(sectionId, "down") end)
+    table.insert(btns, downBtn)
+
+    -- Botón Up a la izquierda del Down
+    local upBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    upBtn:SetSize(btnSize, btnSize)
+    upBtn:SetPoint("RIGHT", downBtn, "LEFT", -spacing, 0)
+    -- Crear Texture para la flecha Up
+    local upIcon = upBtn:CreateTexture(nil, "ARTWORK")
+    upIcon:SetTexture("Interface\\AddOns\\MyCheatSheet\\Images\\UPArrow")
+    upIcon:SetSize(12, 12)
+    upIcon:SetPoint("CENTER", upBtn, "CENTER", 0, 0)
+    upBtn.icon = upIcon
+    upBtn:SetText("")
+    upBtn:SetEnabled(not isFirst)
+    if isFirst then
+        upIcon:SetDesaturated(true)
+        upIcon:SetAlpha(0.5)
+    else
+        upIcon:SetDesaturated(false)
+        upIcon:SetAlpha(1)
+    end
+    upBtn:SetScript("OnClick", function() MyCheatSheet:MoveSection(sectionId, "up") end)
+    table.insert(btns, upBtn)
+    return btns
+end
+
+function MyCheatSheet:UpdateCustomSheetsStatusBar()
+    local panel = self.customSheetsPanel
+    if not panel or not panel.statusBar or not panel._checkboxes then return end
+    local total, checked = 0, 0
+    for _, cb in ipairs(panel._checkboxes) do
+        total = total + 1
+        if cb:GetChecked() then checked = checked + 1 end
+    end
+    panel.statusBar:SetText(string.format("%d/%d %s", checked, total, L["SHEETS_SELECTED"]))
+end
+
+-- Modal panel para gestionar custom sheets
+function MyCheatSheet:ShowCustomSheetsPanel()
+    if self.customSheetsPanel and self.customSheetsPanel:IsShown() then return end
+
+    local panel = self.customSheetsPanel or CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    panel:SetSize(500, 420)
+    panel:SetPoint("CENTER")
+    panel:SetFrameStrata("DIALOG")
+    panel:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        edgeSize = 24,
+        insets = { left = 8, right = 8, top = 8, bottom = 8 }
+    })
+    panel:SetMovable(true)
+    panel:EnableMouse(true)
+    panel:RegisterForDrag("LeftButton")
+    panel:SetScript("OnDragStart", panel.StartMoving)
+    panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
+    panel:Show()
+    self.customSheetsPanel = panel
+
+    -- Título
+    if not panel.title then
+        panel.title = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+        panel.title:SetPoint("TOP", panel, "TOP", 0, -16)
+        panel.title:SetText(L["LIST_CUSTOM_SHEETS"] or "Custom Sheets")
+    end
+
+    -- ScrollFrame para la lista
+    if not panel.scrollFrame then
+        panel.scrollFrame = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+        panel.scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, -48)
+        panel.scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -32, 60)
+        panel.scrollChild = CreateFrame("Frame", nil, panel.scrollFrame)
+        panel.scrollChild:SetSize(340, 320)
+        panel.scrollFrame:SetScrollChild(panel.scrollChild)
+    end
+
+    -- Limpiar lista previa
+    for _, child in ipairs({panel.scrollChild:GetChildren()}) do child:Hide() end
+
+    -- Obtener custom sheets
+    local customData = MyCheatSheet.export and MyCheatSheet.export.customData or {}
+    local rows = {}
+    local idx = 0
+    panel._checkboxes = {}
+    for classID, classData in pairs(customData) do
+    --**local classInfo = C_CreatureInfo.GetClassInfo(classID)
+        local className, classColor = self.export:GetClassNameAndColor(classID)
+
+        for specID, specData in pairs(classData) do
+            idx = idx + 1
+            local specName, specColor = self.export:GetSpecNameAndColor(specID)
+            if not specName then
+                specName = "SpecID: "..tostring(specID)
+            end
+            local row = panel.scrollChild["row"..idx] or CreateFrame("Frame", nil, panel.scrollChild)
+            row:SetSize(480, 24)
+            row:SetPoint("TOPLEFT", panel.scrollChild, "TOPLEFT", 0, -((idx-1)*26))
+            -- Checkbox
+            local cb = row.checkbox or CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+            cb:SetPoint("LEFT", 0, 0)
+            cb:SetSize(20, 20)
+            cb:SetChecked(false)
+            row.checkbox = cb
+            -- Etiqueta
+            local label = row.label or row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            label:SetPoint("LEFT", cb, "RIGHT", 8, 0)
+            local classColorCode = string.format("|cff%02x%02x%02x", classColor.r*255, classColor.g*255, classColor.b*255)
+            local specColorCode = string.format("|cff%02x%02x%02x", specColor.r*255, specColor.g*255, specColor.b*255)
+            local author = specData.author or "?"
+            local updated = specData.updated or "-"
+            local _, _, _, icon = GetSpecializationInfoByID(specID)
+            local iconMarkup = icon and ("|T"..icon..":18:18:0:0:64:64:4:60:4:60|t ") or ""
+            label:SetText(
+                iconMarkup .. classColorCode..className.."|r - "..specColorCode..specName.."|r"
+                .."  |cffa0a0a0"..L["BY"]..":|r "..author
+                .."  |cffa0a0a0"..L["ON"]..":|r "..updated
+            )
+            row.label = label
+            row:Show()
+            cb:Show()
+            label:Show()
+            -- Guardar referencia
+            cb._classID = classID
+            cb._specID = specID
+            -- Actualizar barra de estado al marcar/desmarcar
+            cb:SetScript("OnClick", function() MyCheatSheet:UpdateCustomSheetsStatusBar() end)
+            table.insert(panel._checkboxes, cb)
+        end
+    end
+
+    -- Botón Reset
+    if not panel.resetBtn then
+        panel.resetBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+        panel.resetBtn:SetText(L["RESET"] or "Reset")
+        panel.resetBtn:SetSize(100, 24)
+    end
+    panel.resetBtn:SetScript("OnClick", function()
+        -- Eliminar solo los seleccionados
+        local removed = 0
+        for _, cb in ipairs(panel._checkboxes) do
+            if cb:GetChecked() then
+                if MyCheatSheet.export and MyCheatSheet.export.customData[cb._classID] then
+                    MyCheatSheet.export.customData[cb._classID][cb._specID] = nil
+                    -- Si la clase queda vacía, eliminarla
+                    if next(MyCheatSheet.export.customData[cb._classID]) == nil then
+                        MyCheatSheet.export.customData[cb._classID] = nil
+                    end
+                    removed = removed + 1
+                end
+            end
+        end
+        if removed > 0 then
+            print("|cff00ff00[SUCCESS] Removed "..removed.." custom sheets|r")
+        end
+        panel:Hide()
+    end)
+
+    -- Botón Cancel
+    if not panel.cancelBtn then
+        panel.cancelBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+        panel.cancelBtn:SetText(L["CANCEL"] or "Cancel")
+        panel.cancelBtn:SetSize(100, 24)
+    end
+    panel.cancelBtn:SetScript("OnClick", function()
+        panel:Hide()
+    end)
+
+    -- Posicionar botones juntos en la esquina inferior derecha
+    panel.cancelBtn:ClearAllPoints()
+    panel.resetBtn:ClearAllPoints()
+    panel.cancelBtn:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -24, 18)
+    panel.resetBtn:SetPoint("RIGHT", panel.cancelBtn, "LEFT", -8, 0)
+
+    -- Barra de estado: seleccionados/total (justo encima de los botones, centrada)
+    if not panel.statusBar then
+        panel.statusBar = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        panel.statusBar:SetPoint("BOTTOM", panel, "BOTTOM", 0, 48)
+    end
+    MyCheatSheet:UpdateCustomSheetsStatusBar()
+
+    -- Modalidad: bloquear fondo
+    panel:EnableKeyboard(true)
+    panel:SetPropagateKeyboardInput(false)
+    panel:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then self:Hide() end
+    end)
+    panel:SetFrameLevel(3000)
+    panel:Show()
+end
+    
 -- ui.lua - fin del archivo

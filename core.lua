@@ -419,14 +419,4 @@ function MyCheatSheet:GetTrinckets(classID, specID)
     return { bestInSlot = { itemIDs = {} }, alternatives = { itemIDs = {} } }
 end
 
---- Delega la inicialización de configuración al módulo Config
-function MyCheatSheet:InitializeConfig()
-    if self:IsModuleEnabled("Config") then
-        self.Config:InitializeConfig()
-    else
-        self:EnableModule("Config")
-    end
-end
-
-
 -- core.lua - fin del archivo

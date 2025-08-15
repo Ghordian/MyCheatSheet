@@ -1,4 +1,4 @@
--- data_v1.lua
+-- data.lua
 local ADDON_NAME, private = ... 
 -- Contains the addon's configuration and item data.
 ---@class MyCheatSheet
@@ -9,19 +9,16 @@ local AceLocale = LibStub("AceLocale-3.0")
 ---@type table<string, string>
 local L = AceLocale:GetLocale(ADDON_NAME)
 
---[[ "|cAARRGGBB" ]]--
-
--- La tabla principal contendrá los datos del addon.
+-- La tabla principal contiene los datos del addon.
 private.data = {
-    -- Un número de versión para los datos.
+    -- Un número de versión para el formato de los datos.
 --**version = 1, -- inital definition
 --**version = 2, -- added MyCheatSheetStatGroup
 --**version = 3, -- added tier section
 --**version = 4, -- added classID and specID
 --**version = 5, -- removed cyrce's circles section
 --**version = 6, -- added subsection statsByContent
---**version = 7, -- added fields author, updated for each cheat-sheet
-    version = 8, -- added field patchVersion to each cheat-sheet
+    version = 7, -- added fields author, updated for each cheat-sheet
 
     -- Los datos se indexan por classID y specializationID.
     sheets = {
@@ -31,7 +28,6 @@ private.data = {
         [71] = { -- Arms; By Archimtiros; Updated: 2025/08/03
           author = "Archimtiros",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot = { itemIDs = { 243365, 0 } },
             alternatives = { itemIDs = { 237737, 0 } }, },
@@ -65,7 +61,6 @@ private.data = {
         [72] = { -- Fury; By Archimtiros; Updated: 2025/08/03
           author = "Archimtiros",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot = { itemIDs = { 234490, 222443 } },
             alternatives = { itemIDs = { 237737, 0 } }, },
@@ -99,7 +94,6 @@ private.data = {
         [73] = { -- Protection; By Nomeratur; Updated: 2025/08/03
           author = "Nomeratur",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot = { itemIDs = { 237734, 237723 } },
             alternatives = { itemIDs = { 185824, 237741 } }, },
@@ -136,7 +130,6 @@ private.data = {
         [65] = { -- Holy Paladin; By HolyClarius; Updated: 2025/08/03
           author = "HolyClarius",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot = { itemIDs = { 237735, 237723 } },
             alternatives = { itemIDs = { 221150, 242493 } }, },
@@ -170,7 +163,6 @@ private.data = {
         [66] = { -- Protection Paladin; By Andybrew; Updated: 2025/08/03
           author = "Andybrew",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot = { itemIDs = { 237734, 237723 } },
             alternatives = { itemIDs = { 185824, 237741 } }, },
@@ -210,7 +202,6 @@ private.data = {
         [70] = { -- Retribution Paladin; By Bolas; Updated: 2025/08/03
           author = "Bolas",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot = { itemIDs = { 237737, 0 } },
             alternatives = { itemIDs = { 243365, 242487 } }, },
@@ -247,7 +238,6 @@ private.data = {
         [253] = { -- Beast Mastery; By Tarlo; Updated: 2025/08/03
           author = "Tarlo",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot = { itemIDs = { 237733, 0 } },
             alternatives = { itemIDs = { 234492, 221143 } }, },
@@ -284,7 +274,6 @@ private.data = {
         [254] = { -- marksmanship; By TheAzortharion; Updated: 2025/08/03
           author = "TheAzortharion",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot = { itemIDs = { 185783, 0 } },
             alternatives = { itemIDs = { 237732, 0 } }, },
@@ -318,7 +307,6 @@ private.data = {
         [255] = { -- Survival; By DoolB; Updated: 2025/08/05
           author = "DoolB",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot = { itemIDs = { 242481, 0 } },
             alternatives = { itemIDs = { 222448, 221159 } }, },
@@ -359,7 +347,6 @@ private.data = {
         [259] = { -- Assassination
           author = "Whispyr",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot = { itemIDs = { 237740, 237729 } },
             alternatives = { itemIDs = { 221138, 0 } }, },
@@ -403,7 +390,6 @@ private.data = {
         [260] = { -- Outlaw; By JustGuy; Updated: 2025/08/03
           author = "JustGuy",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot = { itemIDs = { 237731, 234493 } },
             alternatives = { itemIDs = { 221128, 221138 } }, },
@@ -447,7 +433,6 @@ private.data = {
         [261] = { -- Subtlety; By fuu1; Updated: 2025/08/03
           author = "fuu1", -- https://www.wowhead.com/author/fuu1
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot = { itemIDs = { 237731, 234493 } },
             alternatives = { itemIDs = { 221128, 221138 } }, },
@@ -495,7 +480,6 @@ private.data = {
         [256] = { -- Discipline
           author = "AutomaticJak",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237728, 222566 } },
             alternatives = { itemIDs = { 237730 } },
@@ -541,7 +525,6 @@ private.data = {
         [257] = { -- Holy; By AutomaticJak; Updated: 2025/08/03
           author = "AutomaticJak",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237728, 222566 } },
             alternatives = { itemIDs = { 237730 } },
@@ -595,7 +578,6 @@ private.data = {
         [258] = { -- Shadow; By EllipsisPriest; Updated: 2025/08/03
           author = "EllipsisPriest",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237728, 222566 } },
             alternatives = { itemIDs = { 237730, 221122, 221132, 222568 } },
@@ -638,7 +620,6 @@ private.data = {
         [250] = { -- Blood; By Mandl; Updated: 2025/08/03
           author = "Mandl",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot = { itemIDs = { 243365, 0 } },
             alternatives = { itemIDs = { 237725, 242487 } }, },
@@ -689,7 +670,6 @@ private.data = {
         [251] = { -- Frost; By khazakdk; Updated: 2025/08/03
           author = "khazakdk",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 222447, 0 } },
             alternatives = { itemIDs = { 237737, 237813, 237813 } }, },
@@ -726,7 +706,6 @@ private.data = {
         [252] = { -- Unholy; By Taeznak; Updated: 2025/08/03
           author = "Taeznak",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 242487, 0 } },
             alternatives = { itemIDs = { 234490, 237725, 243365 } }, },
@@ -775,7 +754,6 @@ private.data = {
         [262] = { -- Elemental; By HawkCorrigan; Updated: 2025/08/03
           author = "HawkCorrigan",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 237728, 222566 } },
             alternatives = { itemIDs = { 237730, 221122 } },},
@@ -813,7 +791,6 @@ private.data = {
         [263] = { -- Enhancement; By wordup; Updated: 2025/08/03
           author = "wordup",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 185823, 222446 } },
             alternatives = { itemIDs = { 237738, 178834, 221128 } },
@@ -853,7 +830,6 @@ private.data = {
         [264] = { -- Restoration; By Theun; Updated: 2025/08/03
           author = "Theun",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237728, 222566 } },
             alternatives = { itemIDs = { 237723 } },},
@@ -895,7 +871,6 @@ private.data = {
         [62] = { -- Arcane; By Porom; Updated: 2025/08/03
           author = "Porom",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 237735, 222566 } },
             alternatives = { itemIDs = { 237728, 237742, 237730, 222568 } },
@@ -944,7 +919,6 @@ private.data = {
         [63] = { -- Fire; By Preheat; Updated: 2025/08/03
           author = "Preheat",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 237735, 222566 } },
             alternatives = { itemIDs = { 237728, 237730, 221165, 222568 } },
@@ -983,7 +957,6 @@ private.data = {
         [64] = { -- Frost; By Dorovon; Updated: 2025/08/07
           author = "Dorovon",
           updated = "2025/08/07",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 237728, 222566 } },
             alternatives = { itemIDs = { 222568 } },},
@@ -1022,7 +995,6 @@ private.data = {
         [265] = { -- Affliction; By Kalamazi; Updated: 2025/08/03
           author = "Kalamazi",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 237735, 222566 } },
             alternatives = { itemIDs = { 237730 } },},
@@ -1057,7 +1029,6 @@ private.data = {
         [266] = { -- Demonology; By NotWarlock; Updated: 2025/08/03
           author = "NotWarlock",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237735, 222566 } },
             alternatives = { itemIDs = { 185821, 237730 } },},
@@ -1092,7 +1063,6 @@ private.data = {
         [267] = { -- Destruction; By Loozy; Updated: 2025/08/03
           author = "Loozy",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237735, 222566 } },
             alternatives = { itemIDs = { 237730 } },},
@@ -1297,7 +1267,6 @@ private.data = {
         [102] = { -- Balance; By tettles; Updated: 2025/08/03
           author = "tettles",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237730, 0 } },
             alternatives = { itemIDs = { 237735, 222566 } },},
@@ -1332,7 +1301,6 @@ private.data = {
         [103] = { -- Feral; By Guiltyas; Updated: 2025/08/03
           author = "Guiltyas",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 221159, 0 } },
             alternatives = { itemIDs = { 237726, 234494 } },},
@@ -1370,7 +1338,6 @@ private.data = {
         [104] = { -- Guardian; By Pumps; Updated: 2025/08/03
           author = "Pumps",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 237726, 0 } },
             alternatives = { itemIDs = { 243365, 0 } },},
@@ -1408,7 +1375,6 @@ private.data = {
         [105] = { -- Restoration; By Voulk; Updated: 2025/08/03
           author = "Voulk",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237730, 0 } },
             alternatives = { itemIDs = { 222568, 237728 } },},
@@ -1457,7 +1423,6 @@ private.data = {
         [577] = { -- Havoc; By Shadarek; Updated: 2025/08/03
           author = "Shadarek",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237727, 222441 } },
             alternatives = { itemIDs = { 185780, 185778, 237738 } },},
@@ -1477,7 +1442,7 @@ private.data = {
               { stats = { "VERSATILITY" },  operator = ">=" },
               { stats = { "AGILITY" } },},},
           -- Aldrachi [35] Mythic+
-            ["MYTHIC_PUSH_KEYS"] = { statsPriority = {
+            ["MYTHIC_PLUS"] = { statsPriority = {
               { stats = { "CRIT" },         operator = "=" },
               { stats = { "MASTERY" },      operator = ">" },
               { stats = { "HASTE" },        operator = "=" },
@@ -1503,7 +1468,6 @@ private.data = {
         [581] = { -- Vengeance-tank; By Itamae; Updated: 2025/08/03
           author = "Itamae",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 234491, 222440 } },
             alternatives = { itemIDs = { 185778, 0 } },
@@ -1546,7 +1510,6 @@ private.data = {
         [1467] = { -- Devastation; By Preheat; Updated: 2025/08/03 [DPS]
           author = "Preheat",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = {
             bestInSlot   = { itemIDs = { 237735, 222566 } },
             alternatives = { itemIDs = { 237728, 237730, 221165, 222568, 222450 } },},
@@ -1593,7 +1556,6 @@ private.data = {
         [1468] = { -- Preservation; By Voulk; Updated: 2025/08/03 - [healer]
           author = "Voulk",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 237730, 0 } },
             alternatives = { itemIDs = { 222568, 237728 } },},
@@ -1631,7 +1593,6 @@ private.data = {
         [1473] = { -- Augmentation; By Jereico; Updated: 2025/08/03; [DPS]
           author = "Jereico",
           updated = "2025/08/03",
-          patchVersion = "11.2.0",
           weapons = { 
             bestInSlot   = { itemIDs = { 237728, 222566 } },
             alternatives = { itemIDs = { 237730, 221122 } },},
@@ -1670,7 +1631,6 @@ private.data = {
 
 };
 
-
-MyCheatSheet.data = private.data
+MyCheatSheet.data = data
 
 -- data.lua -- fin del archivo

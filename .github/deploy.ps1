@@ -1,4 +1,8 @@
-﻿# Función para calcular ruta relativa (compatible con PowerShell 5.1)
+﻿param(
+    [string]$WoWPath = "D:\World of Warcraft\_retail_\Interface\AddOns"
+)
+
+# Función para calcular ruta relativa (compatible con PowerShell 5.1)
 function Get-RelativePath($base, $path) {
     $base = [System.IO.Path]::GetFullPath($base)
     $path = [System.IO.Path]::GetFullPath($path)
@@ -9,9 +13,6 @@ function Get-RelativePath($base, $path) {
     }
 }
 # deploy.ps1 - Script inteligente para copiar addon
-param(
-    [string]$WoWPath = "D:\World of Warcraft\_retail_\Interface\AddOns"
-)
 
 $AddonName = "MyCheatSheet"
 $SourcePath = (Resolve-Path (Join-Path $PSScriptRoot ".."))
@@ -167,6 +168,18 @@ foreach ($file in $uniqueFiles) {
 }
 
 Write-Host ""
+
+# Copiar carpeta Images a la raíz del addon
+$imagesSource = Join-Path $SourcePath "Images"
+$imagesDest = Join-Path $DestinationPath "Images"
+if (Test-Path $imagesSource) {
+    Write-Host "Copying Images folder..." -ForegroundColor Yellow
+    Copy-Item $imagesSource $imagesDest -Recurse -Force
+    Write-Host "Images folder copied successfully." -ForegroundColor Green
+} else {
+    Write-Host "Images folder not found, skipping copy." -ForegroundColor Yellow
+}
+
 Write-Host "Deploy Summary:" -ForegroundColor Cyan
 Write-Host "  Files copied: $FilesCopied" -ForegroundColor Green
 Write-Host "  Files skipped: $FilesSkipped" -ForegroundColor Yellow

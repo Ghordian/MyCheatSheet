@@ -15,7 +15,22 @@ L["NO_DATA_SELECTED"] = "Selecciona una especialización y un contenido."
 
 -- IMPORT
 L["IMPORT_EXPORT"] = "Importar/Exportar"
+L["IMPORT_EXPORT_TITLE"] = "Importar / Exportar"
 L["IMPORT_PREVIEW_TITLE"] = "Vista Previa de Importación"
+L["EXPORT"] = "Exportar"
+L["EXPORT_CURRENT_SPEC"] = "Exportar Especialización Actual"
+L["EXPORT_CURRENT_CLASS"] = "Exportar Clase Actual"
+L["EXPORT_ALL_DATA"] = "Exportar Todos los Datos"
+L["IMPORT"] = "Importar"
+L["PASTE_EXPORT_STRING"] = "Pega aquí la cadena de exportación..."
+L["PREVIEW_IMPORT"] = "Vista Previa de Importación"
+L["QUICK_MERGE"] = "Fusión Rápida"
+L["CUSTOM_DATA"] = "Datos Personalizados"
+L["LIST_CUSTOM_SHEETS"] = "Listar Hojas Personalizadas"
+L["CLEAR_ALL_CUSTOM_DATA"] = "Borrar Todos los Datos Personalizados"
+
+-- CUSTOM DATA VIEW
+L["SHEETS_SELECTED"] = "seleccionado(s)"
 
 -- IMPORT PREVIEW
 L["SETUP_CONTENTS"] = "Contenido del Setup:"
@@ -58,11 +73,16 @@ L["ALTER_BEST_IN_SLOT_DESC"] = "Items alternativos"
 L["TRINKETS"] = "Abalorios"
 L["CONSUMABLES"] = "Consumibles"
 L["TIER"] = "Tier"
+L["BIS"] = "BiS"
+L["ALT"] = "Alt"
 
 -- UI 
 L["AUTHOR"] = "Autor"
-L["UPDATED"] = "Actialización"
+L["UPDATED"] = "Fecha"
 L["CUSTOM_INFO"] = "Info personalizada"
+L["PATCH"] = "Parche"
+L["BY"] = "Por"
+L["ON"] = "En"
 
 -- CONTENT
 L["RAID"] = "Banda"
@@ -92,5 +112,10 @@ L["MINIMAP_TOOLTIP_MIDDLE_CLICK"] = "Click medio: Alternar icono del minimapa"
 L["MINIMAP_TOOLTIP_ADDON_INFO"] = "Addon de hojas de trucos de personaje"
 L["MINIMAP_ICON_HIDDEN"] = "Icono del minimapa oculto. Usa /mcs minimap para mostrarlo."
 L["MINIMAP_ICON_SHOWN"] = "Icono del minimapa mostrado."
+
+-- LAYOUT
+L["EDIT_LAYOUT"] = "Editar Layout"
+L["SAVE_LAYOUT"] = "Guardar Layout"
+L["EDIT_STATS"] = "Editar"
 
 -- esES.lua -- fin del archivo

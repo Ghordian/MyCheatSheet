@@ -9,13 +9,25 @@ L["TOGGLE_MYCHEATSHEET_PANEL"] = "Toggle My CheatSheet UI"
 
 -- UI
 L["SELECT_CLASS"] = "Select class"
-L["SELECT_SPECIALIZATION"] = "Select Specialization";
+L["SELECT_SPECIALIZATION"] = "Select Specialization"
 L["SELECT_CONTENT"] = "Select Content"
 L["NO_DATA_SELECTED"] = "Select specialization and content."
 
 -- IMPORT
 L["IMPORT_EXPORT"] = "Import/Export"
+L["IMPORT_EXPORT_TITLE"] = "Import / Export"
 L["IMPORT_PREVIEW_TITLE"] = "Import Preview"
+L["EXPORT"] = "Export"
+L["EXPORT_CURRENT_SPEC"] = "Export Current Spec"
+L["EXPORT_CURRENT_CLASS"] = "Export Current Class"
+L["EXPORT_ALL_DATA"] = "Export All Data"
+L["IMPORT"] = "Import"
+L["PASTE_EXPORT_STRING"] = "Paste export string here..."
+L["PREVIEW_IMPORT"] = "Preview Import"
+L["QUICK_MERGE"] = "Quick Merge"
+L["CUSTOM_DATA"] = "Custom Data"
+L["LIST_CUSTOM_SHEETS"] = "List Custom Sheets"
+L["CLEAR_ALL_CUSTOM_DATA"] = "Clear All Custom Data"
 
 -- IMPORT PREVIEW
 L["SETUP_CONTENTS"] = "Setup Contents:"
@@ -34,6 +46,9 @@ L["VIEW_DETAILS"] = "View Details"
 L["IMPORT_MERGE"] = "Import (Merge)"
 L["REPLACE"] = "Replace"
 L["CANCEL"] = "Cancel"
+
+-- CUSTOM DATA VIEW
+L["SHEETS_SELECTED"] = "selected"
 
 -- EDIT
 L["EDIT"] = "Edit"
@@ -58,10 +73,16 @@ L["ALTER_BEST_IN_SLOT_DESC"] = "Alternatives Items"
 L["TRINKETS"] = "Trinkets"
 L["CONSUMABLES"] = "Consumables"
 L["TIER"] = "Tier"
+L["BIS"] = "BiS"
+L["ALT"] = "Alt"
 
 -- UI 
 L["AUTHOR"] = "Author"
 L["UPDATED"] = "Updated"
+L["CUSTOM_INFO"] = "Custom info"
+L["PATCH"] = "Patch"
+L["BY"] = "By"
+L["ON"] = "On"
 
 -- CONTENT
 L["RAID"] = "Raid"
@@ -92,4 +113,9 @@ L["MINIMAP_TOOLTIP_ADDON_INFO"] = "Character cheat sheet addon"
 L["MINIMAP_ICON_HIDDEN"] = "Minimap icon hidden. Use /mcs minimap to show it again."
 L["MINIMAP_ICON_SHOWN"] = "Minimap icon shown."
 
--- enUS.lua -- fin del archivo
+-- LAYOUT
+L["EDIT_LAYOUT"] = "Edit Layout"
+L["SAVE_LAYOUT"] = "Save Layout"
+L["EDIT_STATS"] = "Edit"
+
+-- enUS.lua -- end of file

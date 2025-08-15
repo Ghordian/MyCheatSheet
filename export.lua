@@ -1119,4 +1119,25 @@ function module:CreateImportDetailsFrame()
     return frame
 end
 
+--- Devuelve el nombre y color de clase estándar de WoW
+---@param classID any 
+---@return string, ColorTable
+function module:GetClassNameAndColor(classID)
+    local classInfo = C_CreatureInfo.GetClassInfo(classID)
+    local className = classInfo and classInfo.className or (CLASS_NAMES[classID] or ("Class " .. tostring(classID)))
+    local classFile = classInfo and classInfo.classFile or nil
+    local color = RAID_CLASS_COLORS and classFile and RAID_CLASS_COLORS[classFile] or {r=1,g=1,b=1}
+    return className, color
+end
+
+--- Devuelve el nombre y color de spec estándar de WoW
+---@param specID any 
+---@return string, ColorTable
+function module:GetSpecNameAndColor(specID)
+    local id, name, _, _, _, classFile = GetSpecializationInfoByID(specID)
+    local specName = name or SPEC_NAMES[specID] or ("Spec " .. tostring(specID))
+    local color = RAID_CLASS_COLORS and classFile and RAID_CLASS_COLORS[classFile] or {r=1,g=1,b=1}
+    return specName, color
+end
+
 -- export.lua -- fin del archivo

@@ -17,6 +17,7 @@
     <Content Include="Bindings.xml">
       <SubType>Frame</SubType>
     </Content>
+    <Content Include="CHANGELOG.md" />
     <Content Include="config.lua">
       <SubType>Code</SubType>
     </Content>
@@ -32,6 +33,8 @@
     <Content Include="export.lua">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="Images\DownArrow.tga" />
+    <Content Include="Images\UpArrow.tga" />
     <Content Include="locale\enUS.lua">
       <SubType>Code</SubType>
     </Content>
@@ -243,6 +246,7 @@
   <ItemGroup>
     <Folder Include=".github\" />
     <Folder Include=".github\workflows\" />
+    <Folder Include="Images\" />
     <Folder Include="Libs\" />
     <Folder Include="Libs\AceAddon-3.0\" />
     <Folder Include="Libs\AceBucket-3.0\" />

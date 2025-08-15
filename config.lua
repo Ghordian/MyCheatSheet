@@ -16,6 +16,51 @@ local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceLocale = LibStub("AceLocale-3.0")
 local L = AceLocale:GetLocale(ADDON_NAME)
 
+--[[
+Sistema de control de versiones de configuración
+-----------------------------------------------
+Cada vez que se cambia la estructura de la configuración por perfil, se debe:
+    1. Aumentar el valor de self.CONFIG_VERSION.
+    2. Añadir lógica de migración en InitializeConfig para adaptar perfiles antiguos.
+    3. Usar el campo profile.configVersion para saber la versión de los datos del usuario.
+
+Ejemplo de migración:
+if self.addon.db.profile.configVersion < 2 then
+        -- Realizar cambios necesarios para la versión 2
+end
+
+Esto asegura compatibilidad y actualización automática de perfiles antiguos.
+]]
+
+    -- Función de copia profunda
+    local function deepcopy(tbl)
+        if type(tbl) ~= "table" then return tbl end
+        local t = {}
+        for k, v in pairs(tbl) do
+            t[k] = type(v) == "table" and deepcopy(v) or v
+        end
+        return t
+    end
+
+    local function vardump(t, level)
+        level = level or 0
+        if not module:GetDebugMode() then return end
+        if type(t) ~= "table" then
+            module:DebugPrint(string.rep("  ", level) .. tostring(t))
+            return
+        end
+        if level > 2 then return end -- máximo 3 niveles (0,1,2)
+        for k, v in pairs(t) do
+            if type(v) == "table" then
+                module:DebugPrint(string.rep("  ", level) .. tostring(k) .. " = {")
+                vardump(v, level + 1)
+                module:DebugPrint(string.rep("  ", level) .. "}")
+            else
+                module:DebugPrint(string.rep("  ", level) .. tostring(k) .. " = " .. tostring(v))
+            end
+        end
+    end
+
 -- ========================================
 -- MÓDULO CONFIG
 -- ========================================
@@ -31,9 +76,13 @@ end
 
 --- Inicializa el sistema de configuración
 function module:InitializeConfig()
+    self:DebugPrint("InitializeConfig")
+
     -- Configuración por defecto
+    self.CONFIG_VERSION = 1
     self.addon.defaults = {
         profile = {
+            configVersion = self.CONFIG_VERSION,
             -- UI Settings
             ui = {
                 position = {
@@ -42,20 +91,75 @@ function module:InitializeConfig()
                     y = 0
                 }
             },
-            
+            -- Layout editable por usuario (por perfil)
+            layout = {
+                sections = {
+                    { id = "STAT_PRIORITY", visible = true },
+                    { id = "WEAPONS", visible = true },
+                    { id = "TRINKETS", visible = true },
+                    { id = "CONSUMABLES", visible = true },
+                    { id = "TIER", visible = true },
+                }
+            },
             -- Advanced Settings  
             advanced = {
                 debugMode = false
             }
         }
     }
-    
+
     -- Inicializar base de datos
     self.addon.db = LibStub("AceDB-3.0"):New("MyCheatSheetDB", self.addon.defaults, true)
-    
+
+    --[[ REPARACIÓN INMEDIATA: asegurar layout y sections tras crear la base de datos
+    local repaired = false
+    if not self.addon.db.profile.layout or type(self.addon.db.profile.layout) ~= "table" then
+        self.addon.db.profile.layout = deepcopy(self.addon.defaults.profile.layout)
+        self:DebugPrint("[MIGRATION] Reparado layout ausente/corrupto (inmediato)")
+        repaired = true
+    end
+    if not self.addon.db.profile.layout.sections or type(self.addon.db.profile.layout.sections) ~= "table" or #self.addon.db.profile.layout.sections == 0 then
+        self.addon.db.profile.layout.sections = deepcopy(self.addon.defaults.profile.layout.sections)
+        self:DebugPrint("[MIGRATION] Reparado layout.sections vacío/corrupto (inmediato)")
+        repaired = true
+    end
+    ]]--
+
+    -- Migración/configuración por versión
+    if not self.addon.db.profile.configVersion then
+        self.addon.db.profile.configVersion = 0
+    end
+
+    -- Migración de versión 0 a 1: añadir layout si no existe
+    if self.addon.db.profile.configVersion < 1 then
+        if not self.addon.db.profile.layout then
+            self.addon.db.profile.layout = deepcopy(self.addon.defaults.profile.layout)
+        end
+        self.addon.db.profile.configVersion = self.CONFIG_VERSION
+    end
+
+    -- Migraciones futuras: ejemplo
+    if self.addon.db.profile.configVersion < self.CONFIG_VERSION then
+        -- Aquí puedes añadir migraciones según la versión
+        self.addon.db.profile.configVersion = self.CONFIG_VERSION
+    end
+    -- Versión Activa!
+    self:DebugPrint("configVersion", self.CONFIG_VERSION)
+
+    --[[ Reparación forzada: asegurar que layout.sections existe y no está vacío
+    if not self.addon.db.profile.layout or type(self.addon.db.profile.layout) ~= "table" then
+        self.addon.db.profile.layout = deepcopy(self.addon.defaults.profile.layout)
+        self:DebugPrint("[MIGRATION] Reparado layout ausente/corrupto")
+    end
+    if not self.addon.db.profile.layout.sections or type(self.addon.db.profile.layout.sections) ~= "table" or #self.addon.db.profile.layout.sections == 0 then
+        self.addon.db.profile.layout.sections = deepcopy(self.addon.defaults.profile.layout.sections)
+        self:DebugPrint("[MIGRATION] Reparado layout.sections vacío/corrupto")
+    end
+    ]]--
+
     -- Crear opciones de configuración
     self:CreateConfigOptions()
-    
+
     -- Registrar en Blizzard Interface Options
     self:RegisterConfig()
 end
@@ -116,7 +220,7 @@ end
 function module:RegisterConfig()
     AceConfig:RegisterOptionsTable(ADDON_NAME, self.configOptions)
     self.addon.configFrame = AceConfigDialog:AddToBlizOptions(ADDON_NAME, "MyCheatSheet")
-    
+
     -- Agregar perfil de opciones
     self.configOptions.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.addon.db)
 end
@@ -160,9 +264,9 @@ function module:SetOption(info, value)
 end
 
 --- Debug del Módulo
-function module:DebugPrint(message)
+function module:DebugPrint(...)
     if self:GetDebugMode() then
-        print("|cff00ffff[Config Module]|r " .. message)
+        print("|cff00ffff[Config Module]|r", ...)
     end
 end
 
@@ -175,9 +279,5 @@ function module:GetDebugMode()
     end
     return true
 end
-
---[[ Exportar el módulo
-MyCheatSheet.Config = module
-]]--
 
 -- config.lua -- fin del archivo
