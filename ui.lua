@@ -202,7 +202,7 @@ end
 --- 231;
 local function SelectClassDropdown(info)
     if MyCheatSheet.selectedClass then
-        self:DebugPrint("selectedClass", MyCheatSheet.selectedClass)
+        MyCheatSheet:DebugPrint("selectedClass", MyCheatSheet.selectedClass)
         local classInfo = C_CreatureInfo.GetClassInfo(MyCheatSheet.selectedClass);
         if classInfo then
             UIDropDownMenu_SetText(MyCheatSheet.classDropdown, classInfo.className);
