@@ -5,15 +5,15 @@
 ## Notes: A character cheat sheet for World of Warcraft: The War Within.
 
 ## Author: Ghordjan
-## Version: 0.2.2
+## Version: 0.2.3
 
 ## LoadOnDemand: 0
 #-# LoadWith: Blizzard_PlayerSpells
 
 ## SavedVariables: MyCheatSheetDB
 
-#-# OptionalDeps:
-## Dependencies: Ace3
+## OptionalDeps: Ace3
+#-# Dependencies: Ace3
 
 ## X-Curse-Project-ID: 1325765
 ## X-WoWI-ID: 26955
