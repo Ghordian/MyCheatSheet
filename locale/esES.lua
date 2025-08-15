@@ -28,6 +28,9 @@ L["QUICK_MERGE"] = "Fusión Rápida"
 L["CUSTOM_DATA"] = "Datos Personalizados"
 L["LIST_CUSTOM_SHEETS"] = "Listar Hojas Personalizadas"
 L["CLEAR_ALL_CUSTOM_DATA"] = "Borrar Todos los Datos Personalizados"
+L["CONFIRM_RESET_CUSTOM_DATA"] = "¿Seguro que quieres borrar todos los datos personalizados? Esta acción no se puede deshacer."
+L["CONFIRM_RESET_ALL_CUSTOM_DATA"] = "¿Seguro que quieres borrar TODOS los datos personalizados? Esta acción no se puede deshacer."
+L["CONFIRM_RESET_SELECTED_CUSTOM_DATA"] = "¿Seguro que quieres borrar las hojas personalizadas seleccionadas? Esta acción no se puede deshacer."
 
 -- CUSTOM DATA VIEW
 L["SHEETS_SELECTED"] = "seleccionado(s)"

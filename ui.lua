@@ -159,13 +159,24 @@ function MyCheatSheet:CreateCheatSheetUI()
     editLayoutButton:SetPoint("RIGHT", closeButton, "LEFT", -8, 0)
     editLayoutButton:SetScript("OnClick", function()
         MyCheatSheet:ToggleLayoutEditMode()
-    editLayoutButton:SetText(MyCheatSheet.isLayoutEditMode and L["SAVE_LAYOUT"] or L["EDIT_LAYOUT"])
+        editLayoutButton:SetText(MyCheatSheet.isLayoutEditMode and L["SAVE_LAYOUT"] or L["EDIT_LAYOUT"])
     end)
     frame.editLayoutButton = editLayoutButton
+    -- Mostrar/ocultar según config
+    if not (MyCheatSheet.db and MyCheatSheet.db.profile and MyCheatSheet.db.profile.ui and MyCheatSheet.db.profile.ui.showLayoutEditButton) then
+        editLayoutButton:Hide()
+    else
+        editLayoutButton:Show()
+    end
     -- Asegura que el texto del botón refleje el estado al mostrar la ventana
     frame:HookScript("OnShow", function(self)
         if self.editLayoutButton then
             self.editLayoutButton:SetText(MyCheatSheet.isLayoutEditMode and L["SAVE_LAYOUT"] or L["EDIT_LAYOUT"])
+            if MyCheatSheet.db and MyCheatSheet.db.profile and MyCheatSheet.db.profile.ui and MyCheatSheet.db.profile.ui.showLayoutEditButton then
+                self.editLayoutButton:Show()
+            else
+                self.editLayoutButton:Hide()
+            end
         end
     end)
 
@@ -904,39 +915,41 @@ function MyCheatSheet:CreateItemSection(parent, yOffset, title, subsections)
         end
     end
 
-    if hasSubsections then
-        -- SECCIONES CON SUBSECCIONES (Weapons, Trinkets, Tier)
-        local buttonWidth = 50
-        local buttonSpacing = 5
+    if MyCheatSheet.db and MyCheatSheet.db.profile and MyCheatSheet.db.profile.ui and MyCheatSheet.db.profile.ui.showDataEditButtons then
+        if hasSubsections then
+            -- SECCIONES CON SUBSECCIONES (Weapons, Trinkets, Tier)
+            local buttonWidth = 50
+            local buttonSpacing = 5
 
-        -- Botón BiS (PRIMERO)
-        local editBisButton = CreateFrame("Button", nil, sectionFrame, "UIPanelButtonTemplate")
-    editBisButton:SetText(L["BIS"])
-        editBisButton:SetSize(buttonWidth, 20)
-        editBisButton:SetPoint("TOPRIGHT", sectionFrame, "TOPRIGHT", -4, -4)
-        editBisButton:SetScript("OnClick", function()
-            self:OpenSimpleEditor(title, "bestInSlot")
-        end)
+            -- Botón BiS (PRIMERO)
+            local editBisButton = CreateFrame("Button", nil, sectionFrame, "UIPanelButtonTemplate")
+            editBisButton:SetText(L["BIS"])
+            editBisButton:SetSize(buttonWidth, 20)
+            editBisButton:SetPoint("TOPRIGHT", sectionFrame, "TOPRIGHT", -4, -4)
+            editBisButton:SetScript("OnClick", function()
+                self:OpenSimpleEditor(title, "bestInSlot")
+            end)
 
-        -- Botón Alt (SEGUNDO, solo si existe)
-        if hasAlternatives then
-            local editAltButton = CreateFrame("Button", nil, sectionFrame, "UIPanelButtonTemplate")
-            editAltButton:SetText(L["ALT"])
-            editAltButton:SetSize(buttonWidth, 20)
-            editAltButton:SetPoint("RIGHT", editBisButton, "LEFT", -buttonSpacing, 0)
-            editAltButton:SetScript("OnClick", function()
-                self:OpenSimpleEditor(title, "alternatives")
+            -- Botón Alt (SEGUNDO, solo si existe)
+            if hasAlternatives then
+                local editAltButton = CreateFrame("Button", nil, sectionFrame, "UIPanelButtonTemplate")
+                editAltButton:SetText(L["ALT"])
+                editAltButton:SetSize(buttonWidth, 20)
+                editAltButton:SetPoint("RIGHT", editBisButton, "LEFT", -buttonSpacing, 0)
+                editAltButton:SetScript("OnClick", function()
+                    self:OpenSimpleEditor(title, "alternatives")
+                end)
+            end
+        else
+            -- SECCIONES SIN SUBSECCIONES (Consumables)
+            local editButton = CreateFrame("Button", nil, sectionFrame, "UIPanelButtonTemplate")
+            editButton:SetText(L["EDIT"])
+            editButton:SetSize(50, 20)
+            editButton:SetPoint("TOPRIGHT", sectionFrame, "TOPRIGHT", -4, -4)
+            editButton:SetScript("OnClick", function()
+                local bRefresh = self:OpenSimpleEditor(title, "direct")  -- Modo especial para consumables
             end)
         end
-    else
-        -- SECCIONES SIN SUBSECCIONES (Consumables)
-        local editButton = CreateFrame("Button", nil, sectionFrame, "UIPanelButtonTemplate")
-        editButton:SetText(L["EDIT"])
-        editButton:SetSize(50, 20)
-        editButton:SetPoint("TOPRIGHT", sectionFrame, "TOPRIGHT", -4, -4)
-        editButton:SetScript("OnClick", function()
-            local bRefresh = self:OpenSimpleEditor(title, "direct")  -- Modo especial para consumables
-        end)
     end
 
     local currentHeight = titleHeight + verticalPadding;
@@ -1199,9 +1212,7 @@ function MyCheatSheet:CreateImportExportFrame()
     customClearButton:SetSize(180, 25)
     customClearButton:SetPoint("TOPLEFT", customListButton, "BOTTOMLEFT", 0, -5)
     customClearButton:SetScript("OnClick", function()
-        if self.export then
-            self.export:HandleCustomCommand({"custom", "clear"})
-        end
+        StaticPopup_Show("MYCHEATSHEET_CONFIRM_RESET_ALL")
     end)
     
     -- Permitir cerrar con Escape
@@ -1431,14 +1442,17 @@ function MyCheatSheet:ShowCustomSheetsPanel()
             local label = row.label or row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             label:SetPoint("LEFT", cb, "RIGHT", 8, 0)
             local classColorCode = string.format("|cff%02x%02x%02x", classColor.r*255, classColor.g*255, classColor.b*255)
-            local specColorCode = string.format("|cff%02x%02x%02x", specColor.r*255, specColor.g*255, specColor.b*255)
+        --**local specColorCode = string.format("|cff%02x%02x%02x", specColor.r*255, specColor.g*255, specColor.b*255)
+            local authorColor = "|cFF33FF33" -- verde
+            local specColorCode = "|cFFFFFFFF"   -- blanco
+
             local author = specData.author or "?"
             local updated = specData.updated or "-"
             local _, _, _, icon = GetSpecializationInfoByID(specID)
             local iconMarkup = icon and ("|T"..icon..":18:18:0:0:64:64:4:60:4:60|t ") or ""
             label:SetText(
                 iconMarkup .. classColorCode..className.."|r - "..specColorCode..specName.."|r"
-                .."  |cffa0a0a0"..L["BY"]..":|r "..author
+                .."  |cffa0a0a0"..L["BY"]..":|r "..authorColor..author.."|r"
                 .."  |cffa0a0a0"..L["ON"]..":|r "..updated
             )
             row.label = label
@@ -1461,24 +1475,8 @@ function MyCheatSheet:ShowCustomSheetsPanel()
         panel.resetBtn:SetSize(100, 24)
     end
     panel.resetBtn:SetScript("OnClick", function()
-        -- Eliminar solo los seleccionados
-        local removed = 0
-        for _, cb in ipairs(panel._checkboxes) do
-            if cb:GetChecked() then
-                if MyCheatSheet.export and MyCheatSheet.export.customData[cb._classID] then
-                    MyCheatSheet.export.customData[cb._classID][cb._specID] = nil
-                    -- Si la clase queda vacía, eliminarla
-                    if next(MyCheatSheet.export.customData[cb._classID]) == nil then
-                        MyCheatSheet.export.customData[cb._classID] = nil
-                    end
-                    removed = removed + 1
-                end
-            end
-        end
-        if removed > 0 then
-            print("|cff00ff00[SUCCESS] Removed "..removed.." custom sheets|r")
-        end
-        panel:Hide()
+        -- Confirmación antes de eliminar seleccionados
+        StaticPopup_Show("MYCHEATSHEET_CONFIRM_RESET_SELECTED")
     end)
 
     -- Botón Cancel
@@ -1513,5 +1511,94 @@ function MyCheatSheet:ShowCustomSheetsPanel()
     panel:SetFrameLevel(3000)
     panel:Show()
 end
-    
+
+-- =============================
+-- StaticPopupDialog para confirmación de reset de custom sheets
+-- =============================
+StaticPopupDialogs["MYCHEATSHEET_CONFIRM_RESET"] = {
+    text = L["CONFIRM_RESET_CUSTOM_DATA"],
+    button1 = CONTINUE,
+    button2 = CANCEL,
+    OnAccept = function()
+        -- Eliminar solo los seleccionados
+        local removed = 0
+        local panel = MyCheatSheet.customSheetsPanel
+        if panel and panel._checkboxes then
+            for _, cb in ipairs(panel._checkboxes) do
+                if cb:GetChecked() then
+                    if MyCheatSheet.export and MyCheatSheet.export.customData[cb._classID] then
+                        MyCheatSheet.export.customData[cb._classID][cb._specID] = nil
+                        if next(MyCheatSheet.export.customData[cb._classID]) == nil then
+                            MyCheatSheet.export.customData[cb._classID] = nil
+                        end
+                        removed = removed + 1
+                    end
+                end
+            end
+            if removed > 0 then
+                print("|cff00ff00[SUCCESS] "..string.format(L["N_CUSTOM_SHEETS_REMOVED"], removed).."|r")
+            end
+            panel:Hide()
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+-- StaticPopupDialog para borrar TODOS los datos custom
+StaticPopupDialogs["MYCHEATSHEET_CONFIRM_RESET_ALL"] = {
+    text = L["CONFIRM_RESET_ALL_CUSTOM_DATA"],
+    button1 = CONTINUE,
+    button2 = CANCEL,
+    OnAccept = function()
+        -- Eliminar TODOS los datos custom
+        if MyCheatSheet.export and MyCheatSheet.export.customData then
+            MyCheatSheet.export.customData = {}
+            print("|cff00ff00[SUCCESS] "..L["ALL_CUSTOM_SHEETS_REMOVED"].."|r")
+        end
+        -- Cerrar panel si está abierto
+        local panel = MyCheatSheet.customSheetsPanel
+        if panel then panel:Hide() end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+-- StaticPopupDialog para borrar SOLO los seleccionados
+StaticPopupDialogs["MYCHEATSHEET_CONFIRM_RESET_SELECTED"] = {
+    text = L["CONFIRM_RESET_SELECTED_CUSTOM_DATA"],
+    button1 = CONTINUE,
+    button2 = CANCEL,
+    OnAccept = function()
+        -- Eliminar solo los seleccionados
+        local removed = 0
+        local panel = MyCheatSheet.customSheetsPanel
+        if panel and panel._checkboxes then
+            for _, cb in ipairs(panel._checkboxes) do
+                if cb:GetChecked() then
+                    if MyCheatSheet.export and MyCheatSheet.export.customData[cb._classID] then
+                        MyCheatSheet.export.customData[cb._classID][cb._specID] = nil
+                        if next(MyCheatSheet.export.customData[cb._classID]) == nil then
+                            MyCheatSheet.export.customData[cb._classID] = nil
+                        end
+                        removed = removed + 1
+                    end
+                end
+            end
+            if removed > 0 then
+                print("|cff00ff00[SUCCESS] "..string.format(L["N_CUSTOM_SHEETS_REMOVED"], removed).."|r")
+            end
+            panel:Hide()
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
 -- ui.lua - fin del archivo

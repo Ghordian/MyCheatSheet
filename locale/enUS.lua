@@ -28,6 +28,9 @@ L["QUICK_MERGE"] = "Quick Merge"
 L["CUSTOM_DATA"] = "Custom Data"
 L["LIST_CUSTOM_SHEETS"] = "List Custom Sheets"
 L["CLEAR_ALL_CUSTOM_DATA"] = "Clear All Custom Data"
+L["CONFIRM_RESET_CUSTOM_DATA"] = "Are you sure you want to reset all custom data? This cannot be undone."
+L["CONFIRM_RESET_ALL_CUSTOM_DATA"] = "Are you sure you want to delete ALL custom data? This cannot be undone."
+L["CONFIRM_RESET_SELECTED_CUSTOM_DATA"] = "Are you sure you want to delete the selected custom sheets? This cannot be undone."
 
 -- IMPORT PREVIEW
 L["SETUP_CONTENTS"] = "Setup Contents:"
