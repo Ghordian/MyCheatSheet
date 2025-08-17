@@ -3,7 +3,7 @@
 local ADDON_NAME, private = ...
 
 -- Contains the addon's configuration and item data.
----@class MyCheatSheet
+---@type MyCheatSheet 
 local MyCheatSheet = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME);
 
 ---@type AceLocale-3.0
@@ -16,7 +16,6 @@ local L = AceLocale:GetLocale(ADDON_NAME)
 --- Editor simple para una sola subsección
 ---@param sectionTitle string
 ---@param subsectionType string "bestInSlot" o "alternatives"
----@return bRefresh boolean
 function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
     -- Cerrar editor existente
     if self.editFrame then
@@ -36,7 +35,7 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
     elseif subsectionType == "alternatives" then
         subsectionName = L["ALTERNATIVES"]
     end
-    
+
     -- Frame simple
     local editFrame = CreateFrame("Frame", "MyCheatSheetEditFrame", UIParent, "BackdropTemplate")
     editFrame:SetSize(400, 300)
@@ -96,44 +95,58 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
     example:SetPoint("TOPLEFT", 20, -120)
     example:SetTextColor(0.7, 0.7, 0.7, 1)
 
-    -- Botones [save][cancel][reset]
-    local resetButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
-    resetButton:SetText(L["RESET"])
-    resetButton:SetSize(80, 25)
-    resetButton:SetPoint("BOTTOMRIGHT", -20, 20)
-    resetButton:SetScript("OnClick", function()
-        self:ResetSingleSubsection(sectionTitle, subsectionType)
-        editFrame:Hide()
-        self.editFrame = nil
-        self.Result = true
-        self:UpdateUI()
-    end)
+    -- [Save]    [Reset]    [Cancel] mostrados de izquierda a derecha
 
     local cancelButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
     cancelButton:SetText(L["CANCEL"])
     cancelButton:SetSize(80, 25)
-    cancelButton:SetPoint("RIGHT", resetButton, "LEFT", -10, 0)
+    cancelButton:SetPoint("BOTTOMRIGHT", -20, 20)
     cancelButton:SetScript("OnClick", function()
         editFrame:Hide()
         self.editFrame = nil
     end)
 
+    local resetButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
+    resetButton:SetText(L["RESET"])
+    resetButton:SetSize(80, 25)
+    resetButton:SetPoint("RIGHT", cancelButton, "LEFT", -5, 0)
+    resetButton:SetScript("OnClick", function()
+        -- Show confirmation dialog before resetting
+        StaticPopupDialogs["MYCHEATSHEET_CONFIRM_RESET_SIMPLE_EDITOR"] = {
+            text = L["CONFIRM_RESET_SIMPLE_EDITOR"],
+            button1 = CONTINUE,
+            button2 = CANCEL,
+            OnAccept = function()
+                MyCheatSheet:ResetSingleSubsection(sectionTitle, subsectionType)
+                editFrame:Hide()
+                MyCheatSheet.editFrame = nil
+                MyCheatSheet.Result = true
+                MyCheatSheet:UpdateUI()
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("MYCHEATSHEET_CONFIRM_RESET_SIMPLE_EDITOR")
+    end)
+
     local saveButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
     saveButton:SetText(L["SAVE"])
     saveButton:SetSize(80, 25)
-    saveButton:SetPoint("RIGHT", cancelButton, "LEFT", -10, 0)
+    saveButton:SetPoint("RIGHT", resetButton, "LEFT", -5, 0)
     saveButton:SetScript("OnClick", function()
         self:SaveSingleSubsection(sectionTitle, subsectionType, editBox:GetText())
         editFrame:Hide()
         self.editFrame = nil
-        self:UpdateUI()
         self.Result = true
+        self:UpdateUI()
     end)
 
     -- Preview de iconos en tiempo real
     local previewFrame = CreateFrame("ScrollFrame", nil, editFrame, "UIPanelScrollFrameTemplate")
     previewFrame:SetPoint("TOPLEFT", 20, -150)
-    previewFrame:SetPoint("BOTTOMRIGHT", -30, 80)
+    previewFrame:SetPoint("BOTTOMRIGHT", -50, 80)
 
     local previewContent = CreateFrame("Frame", nil, previewFrame)
     previewContent:SetSize(350, 200)
@@ -145,32 +158,32 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
         for _, child in ipairs({previewContent:GetChildren()}) do
             child:Hide()
         end
-        
+
         local itemText = editBox:GetText()
         local itemIDs = {}
-        
+
         -- Parsear IDs del texto
         for itemID in string.gmatch(itemText, "(%d+)") do
             local id = tonumber(itemID)
             if id then table.insert(itemIDs, id) end
         end
-        
+
         local itemSize = 32
         local itemPadding = 5
         local itemsPerRow = 8
-        
+
         -- Crear botones de items
         for i, itemID in ipairs(itemIDs) do
             local col = (i-1) % itemsPerRow
             local row = math.floor((i-1) / itemsPerRow)
-            
+
             local button = CreateFrame("Button", nil, previewContent)
             button:SetSize(itemSize, itemSize)
             button:SetPoint("TOPLEFT", col * (itemSize + itemPadding), -row * (itemSize + itemPadding))
-            
+
             local icon = button:CreateTexture(nil, "ARTWORK")
             icon:SetAllPoints(button)
-            
+
             -- Obtener icono del item
             if itemID and itemID > 0 then
                 local _, _, _, _, _, _, _, _, _, itemIcon = GetItemInfo(itemID)
@@ -180,7 +193,7 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
                     icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
                 end
             end
-            
+
             -- Tooltip del item
             button.itemID = itemID
             button:SetScript("OnEnter", function(self)
@@ -191,7 +204,7 @@ function MyCheatSheet:OpenSimpleEditor(sectionTitle, subsectionType)
                 GameTooltip:Hide()
             end)
         end
-        
+
         -- Ajustar altura del contenido
         local totalRows = math.ceil(#itemIDs / itemsPerRow)
         previewContent:SetHeight(math.max(100, totalRows * (itemSize + itemPadding)))
@@ -251,19 +264,19 @@ function MyCheatSheet:ResetCustomItems(sectionTitle)
     if not MyCheatSheetDB or not MyCheatSheetDB.customOverrides then
         return
     end
-    
+
     local sectionKey = self:GetSectionKey(sectionTitle)
-    
+
     if MyCheatSheetDB.customOverrides[self.selectedClass] and
        MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec] then
-        
+
         -- Eliminar directamente del spec (sin content)
         MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec][sectionKey] = nil
-        
+
         local className = C_CreatureInfo.GetClassInfo(self.selectedClass).className
         local _, specName = GetSpecializationInfoByID(self.selectedSpec)
-        
-        print(string.format("Items personalizados reseteados para %s %s: %s", 
+
+        print(string.format("Reset Custom Items for %s %s: %s",
               className, specName, sectionTitle))
     end
 end
@@ -278,7 +291,7 @@ function MyCheatSheet:GetSectionKey(sectionTitle)
         [L["CONSUMABLES"]] = "consumables",
         [L["TIER"]] = "tier"
     }
-    
+
     return titleMap[sectionTitle] or string.lower(sectionTitle:gsub(" ", ""))
 end
 
@@ -399,20 +412,21 @@ function MyCheatSheet:ResetStatsForContent()
         print("[INFO] No custom stats to reset")
         return 
     end
-    
+
     if MyCheatSheetDB.customOverrides[self.selectedClass] and
        MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec] and
        MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec].statsByContent and
        MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec].statsByContent[self.selectedContent] then
-        
+
         MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec].statsByContent[self.selectedContent].statsPriority = nil
-        
+
         local classInfo = C_CreatureInfo.GetClassInfo(self.selectedClass)
-        local _, specName = GetSpecializationInfoByID(self.selectedSpec)
-        local contentName = self.contentKeysToNames[self.selectedContent] or self.selectedContent
-        
-        print(string.format("[OK] Stats priority reset for %s %s - %s", 
-            classInfo.className, specName, contentName))
+        if classInfo then
+            local _, specName = GetSpecializationInfoByID(self.selectedSpec)
+            local contentName = self.contentKeysToNames[self.selectedContent] or self.selectedContent
+            print(string.format("[OK] Stats priority reset for %s %s - %s", 
+                classInfo.className, specName, contentName))
+        end
     else
         print("[INFO] No custom stats found to reset")
     end
@@ -425,7 +439,7 @@ function MyCheatSheet:OpenStatsEditor()
         self.editFrame:Hide()
         self.editFrame = nil
     end
-    
+
     if not self.selectedClass or not self.selectedSpec or not self.selectedContent then
         print("[ERROR] Select class, spec and content type first")
         return
@@ -513,11 +527,48 @@ function MyCheatSheet:OpenStatsEditor()
     helpText:SetText(L["STATS_EDITOR_HELP_L5"].."\n"..L["STATS_EDITOR_HELP_L6"])
     helpText:SetTextColor(0.8, 0.8, 0.8, 1)
 
-    -- Botones (más arriba porque el frame es más pequeño)
+    local buttonWidth = 80
+    local buttonHeight = 25
+
+    -- [Save][Reset][Cancel] de izquierda a derecha
+
+    local cancelButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
+    cancelButton:SetText(L["CANCEL"])
+    cancelButton:SetSize(buttonWidth, buttonHeight)
+    cancelButton:SetPoint("BOTTOMRIGHT", -20, 20)
+    cancelButton:SetScript("OnClick", function()
+        editFrame:Hide()
+        self.editFrame = nil
+    end)
+
+    local resetButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
+    resetButton:SetText(L["RESET"])
+    resetButton:SetSize(buttonWidth, buttonHeight)
+    resetButton:SetPoint("RIGHT", cancelButton, "LEFT", -5, 0)
+    resetButton:SetScript("OnClick", function()
+        -- Mostrar confirmación antes de resetear
+        StaticPopupDialogs["MYCHEATSHEET_CONFIRM_RESET_STATS_EDITOR"] = {
+            text = L["CONFIRM_RESET_STATS_EDITOR"] or "¿Seguro que quieres resetear las estadísticas?",
+            button1 = CONTINUE,
+            button2 = CANCEL,
+            OnAccept = function()
+                self:ResetStatsForContent()
+                editFrame:Hide()
+                self.editFrame = nil
+                self:UpdateUI()
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("MYCHEATSHEET_CONFIRM_RESET_STATS_EDITOR")
+    end)
+
     local saveButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
-    saveButton:SetText("Save")
-    saveButton:SetSize(70, 22)
-    saveButton:SetPoint("BOTTOMRIGHT", -20, 15)
+    saveButton:SetText(L["SAVE"])
+    saveButton:SetSize(buttonWidth, buttonHeight)
+    saveButton:SetPoint("RIGHT", resetButton, "LEFT", -5, 0)
     saveButton:SetScript("OnClick", function()
         local newStatsText = editBox:GetText()
         local success, error = self:SaveStatsFromText(newStatsText)
@@ -530,66 +581,51 @@ function MyCheatSheet:OpenStatsEditor()
             print("[ERROR] " .. (error or "Invalid stats format"))
         end
     end)
-    
-    local cancelButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
-    cancelButton:SetText("Cancel")
-    cancelButton:SetSize(70, 22)
-    cancelButton:SetPoint("RIGHT", saveButton, "LEFT", -5, 0)
-    cancelButton:SetScript("OnClick", function()
-        editFrame:Hide()
-        self.editFrame = nil
-    end)
-    
-    local resetButton = CreateFrame("Button", nil, editFrame, "UIPanelButtonTemplate")
-    resetButton:SetText("Reset")
-    resetButton:SetSize(70, 22)
-    resetButton:SetPoint("RIGHT", cancelButton, "LEFT", -5, 0)
-    resetButton:SetScript("OnClick", function()
-        self:ResetStatsForContent()
-        editFrame:Hide()
-        self.editFrame = nil
-        self:UpdateUI()
-    end)
-    
+
     editFrame:Show()
 end
 
 --- Obtiene los datos actuales de estadísticas
+--- @return table
 function MyCheatSheet:GetCurrentStatsData()
     local specData = self.data.sheets[self.selectedClass] and 
                      self.data.sheets[self.selectedClass][self.selectedSpec]
-    
+
     if specData and specData.statsByContent and specData.statsByContent[self.selectedContent] then
         return specData.statsByContent[self.selectedContent].statsPriority
     end
-    
+
     return {}
 end
 
 --- Convierte estructura de stats a texto editable
+--- @param statsPriority table
+--- @return string
 function MyCheatSheet:ConvertStatsToText(statsPriority)
     if not statsPriority or #statsPriority == 0 then
         return "-- No stats defined --"
     end
-    
+
     local parts = {}
-    
+
     for i, group in ipairs(statsPriority) do
         if group.stats and #group.stats > 0 then
             local groupText = table.concat(group.stats, "=")
             table.insert(parts, groupText)
-            
+
             -- Agregar operador si no es el último grupo
             if i < #statsPriority and group.operator then
                 table.insert(parts, group.operator)
             end
         end
     end
-    
+
     return table.concat(parts, " ")
 end
 
 --- Guarda estadísticas desde texto editado
+--- @param statsText string
+--- @return boolean, string?
 function MyCheatSheet:SaveStatsFromText(statsText)
     -- Limpiar texto
     statsText = statsText:trim()
@@ -616,9 +652,9 @@ function MyCheatSheet:SaveStatsFromText(statsText)
     for token in statsText:gmatch("[^%s]+") do
         table.insert(tokens, token)
     end
-    
+
     local currentGroup = { stats = {} }
-    
+
     for _, token in ipairs(tokens) do
         if validOperators[token] then
             -- Es un operador
@@ -638,24 +674,24 @@ function MyCheatSheet:SaveStatsFromText(statsText)
                     return false, string.format("Invalid stat: %s", stat)
                 end
             end
-            
+
             -- Agregar stats al grupo actual
             for _, stat in ipairs(stats) do
                 table.insert(currentGroup.stats, stat)
             end
         end
     end
-    
+
     -- Agregar último grupo
     if #currentGroup.stats > 0 then
         table.insert(statsPriority, currentGroup)
     end
-    
+
     -- Validar que hay al menos un grupo
     if #statsPriority == 0 then
         return false, "No valid stats found"
     end
-    
+
     -- Guardar en SavedVariables
     if not MyCheatSheetDB.customOverrides then
         MyCheatSheetDB.customOverrides = {}
@@ -672,9 +708,9 @@ function MyCheatSheet:SaveStatsFromText(statsText)
     if not MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec].statsByContent[self.selectedContent] then
         MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec].statsByContent[self.selectedContent] = {}
     end
-    
+
     MyCheatSheetDB.customOverrides[self.selectedClass][self.selectedSpec].statsByContent[self.selectedContent].statsPriority = statsPriority
-    
+
     return true, nil
 end
 

@@ -1,18 +1,18 @@
 ## Interface: 110107, 110200
-## Title: MyCheatSheet
+## Title: My Cheat Sheet
 ## IconTexture: Interface\Icons\INV_Scroll_03
 
 ## Notes: A character cheat sheet for World of Warcraft: The War Within.
 
 ## Author: Ghordjan
-## Version: 0.2.4
+## Version: 0.3.2
 
 ## LoadOnDemand: 0
 #-# LoadWith: Blizzard_PlayerSpells
 
 ## SavedVariables: MyCheatSheetDB
 
-## OptionalDeps: Ace3
+## OptionalDeps: Ace3, tekDebug
 #-# Dependencies: Ace3
 
 ## X-Curse-Project-ID: 1325765
@@ -33,6 +33,7 @@ locale\esES.lua
 bindings.lua
 
 types.lua
+consts.lua
 core.lua
 data.lua
 ui.lua

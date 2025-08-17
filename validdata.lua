@@ -1,12 +1,12 @@
 -- validdata.lua
 local ADDON_NAME, private = ... 
 
----@class MyCheatSheet
+---@type MyCheatSheet
 local MyCheatSheet = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME);
----@class AceModule
+---@type AceModule
 local module = MyCheatSheet:NewModule("ValidData", "AceEvent-3.0")
 
----@type AceLocale-3.0
+---@type AceLocale
 local AceLocale = LibStub("AceLocale-3.0")
 ---@type table<string, string>
 local L = AceLocale:GetLocale(ADDON_NAME)

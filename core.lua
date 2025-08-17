@@ -34,10 +34,23 @@ MyCheatSheet.contentKeysToNames = {
     ["MYTHIC_PUSH_KEYS"] = L["MYTHIC_PUSH_KEYS"],
 };
 
+---@type Frame
+-- local debugf = tekDebug and tekDebug:GetFrame(ADDON_NAME)
+local debugf = nil
+if debugf then
+--**debugf:Hide()
+end
+
 local debugMode = true
 function MyCheatSheet:GetDebugMode()
     if self.db and self.db.profile and self.db.profile.advanced then
         debugMode = self.db.profile.advanced.debugMode
+    end
+    if debugMode then
+        if debugf then
+            -- mostrar marco de depuración
+            debugf:Show()
+        end
     end
     -- devolver estado actualizado
     return debugMode
@@ -46,7 +59,11 @@ end
 function MyCheatSheet:DebugPrint(...)
   -- 
   if MyCheatSheet:GetDebugMode() then
-    print("|cff00ff00[MyCheatSheet]|r |cff00ffff[DBG]|r", ...)
+    if debugf then
+      debugf:AddMessage("|cff00ff00[MyCheatSheet]|r |cff00ffff[DBG]|r", ...)
+    else
+      print("|cff00ff00[MyCheatSheet]|r |cff00ffff[DBG]|r", ...)
+    end
   end
 end
 
@@ -66,6 +83,8 @@ function MyCheatSheet:OnInitialize()
     if self.RegisterChatCommand then
         self:RegisterChatCommand("mcs", "SlashCommand");
     end
+
+    self:RegisterMessage("MCS_CUSTOMSHEETS_REFRESH", "RefreshUI")
 
     print("|cff00ff00MyCheatSheet|r loaded. Use |cff00ff00/mcs|r to open.")
 end
@@ -419,4 +438,11 @@ function MyCheatSheet:GetTrinckets(classID, specID)
     return { bestInSlot = { itemIDs = {} }, alternatives = { itemIDs = {} } }
 end
 
+function MyCheatSheet:RefreshUI()
+    self:DebugPrint("MyCheatSheet:RefreshUI")
+    if self.MyCheatSheetFrame and self.MyCheatSheetFrame:IsShown() then
+        -- Aquí puedes llamar a la función que repinta/redibuja el panel principal
+        self:UpdateUI()
+    end
+end
 -- core.lua - fin del archivo

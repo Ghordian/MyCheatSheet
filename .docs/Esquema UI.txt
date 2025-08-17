@@ -48,3 +48,45 @@ Este esquema ilustra:
   * **Botones de acción:** Los botones "Importar/Exportar" y "Editar" se mantienen en la parte inferior del panel, bien definidos y separados del contenido principal.
 
 Con el código que te he proporcionado en el mensaje anterior, la interfaz debería corresponder a este diseño.
+
+---
+Jeraquía de marcos en el panel de "Character Info (C)"
+
+[ ] CharacterFrame
+	[ ] CharacterFrameTab1
+		[ ] CharacterModelFrame
+
+	[ ] CharacterFrameTab2
+		[ ] ReputationFrame
+
+	[ ] CharacterFrameTab3
+		[ ] TokenFrame
+
+	[ ] CharacterFrameTab4
+		[ ] CheatSheetFrame
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

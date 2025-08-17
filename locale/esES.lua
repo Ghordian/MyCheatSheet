@@ -32,8 +32,12 @@ L["CONFIRM_RESET_CUSTOM_DATA"] = "¿Seguro que quieres borrar todos los datos pe
 L["CONFIRM_RESET_ALL_CUSTOM_DATA"] = "¿Seguro que quieres borrar TODOS los datos personalizados? Esta acción no se puede deshacer."
 L["CONFIRM_RESET_SELECTED_CUSTOM_DATA"] = "¿Seguro que quieres borrar las hojas personalizadas seleccionadas? Esta acción no se puede deshacer."
 
--- CUSTOM DATA VIEW
-L["SHEETS_SELECTED"] = "seleccionado(s)"
+-- EXPORT
+L["SELECT_ALL"] = "Seleccionar Todo"
+L["CLOSE"] = "Cerrar"
+L["SETUP"] = "Configuración"
+L["CREATED"] = "Creado"
+L["N_SPECS"] = "especialización(es)"
 
 -- IMPORT PREVIEW
 L["SETUP_CONTENTS"] = "Contenido del Setup:"
@@ -53,6 +57,14 @@ L["IMPORT_MERGE"] = "Importar (Fusionar)"
 L["REPLACE"] = "Reemplazar"
 L["CANCEL"] = "Cancelar"
 
+-- IMPORT VIEW DETAILS
+L["SPEC_DETAILS"] = "Detalles de la Especialización:"
+L["PREV"]  = "Anterior"
+L["NEXT"]  = "Siguiente"
+
+-- CUSTOM DATA VIEW
+L["SHEETS_SELECTED"] = "seleccionado(s)"
+
 -- EDIT
 L["EDIT"] = "Editar"
 L["SAVE"] = "Guardar"
@@ -65,6 +77,10 @@ L["STATS_EDITOR_HELP_L2"] = "Ejemplo: INTELLECT > HASTE = CRIT > MASTERY"
 L["STATS_EDITOR_HELP_L3"] = "STRENGTH >> CRIT = HASTE > VERSATILITY"
 L["STATS_EDITOR_HELP_L5"] = "Estadísticas: STRENGTH, AGILITY, INTELLECT, CRIT, HASTE, MASTERY, VERSATILITY"
 L["STATS_EDITOR_HELP_L6"] = "Operadores: = (igual), > (mayor), >> (mucho mayor)"
+L["CONFIRM_RESET_SIMPLE_EDITOR"] = "¿Seguro que quieres resetear estos datos? Esta acción no se puede deshacer."
+L["CONFIRM_RESET_STATS_EDITOR"] = "¿Seguro que quieres resetear las estadísticas? Esta acción no se puede deshacer."
+L["ALL_CUSTOM_SHEETS_REMOVED"] = "Todas las hojas personalizadas han sido eliminadas."
+L["N_CUSTOM_SHEETS_REMOVED"] = "%d hoja(s) personalizada(s) eliminada(s)."
 
 -- DATA
 L["STAT_PRIORITY"] = "Prioridad de Estadísticas"
@@ -120,5 +136,14 @@ L["MINIMAP_ICON_SHOWN"] = "Icono del minimapa mostrado."
 L["EDIT_LAYOUT"] = "Editar Layout"
 L["SAVE_LAYOUT"] = "Guardar Layout"
 L["EDIT_STATS"] = "Editar"
+L["CONFIRM_SAVE_LAYOUT"] = "¿Quieres guardar los cambios en el layout, resetear al predeterminado o cancelar?"
+
+-- CONFIG
+L["RESET_POSITION_OPTION_NAME"] = "Restablecer posición"
+L["RESET_POSITION_OPTION_DESC"] = "Restablece la posición de la ventana al centro"
+L["SHOW_DATA_EDIT_BUTTONS_OPTION_NAME"] = "Mostrar botones de edición de datos"
+L["SHOW_DATA_EDIT_BUTTONS_OPTION_DESC"] = "Muestra u oculta los botones de edición de datos (Editar, BiS, Alt) en cada sección."
+L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_NAME"] = "Mostrar botón de edición de layout"
+L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_DESC"] = "Muestra u oculta el botón de edición de layout en la interfaz principal."
 
 -- esES.lua -- fin del archivo

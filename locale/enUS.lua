@@ -13,7 +13,7 @@ L["SELECT_SPECIALIZATION"] = "Select Specialization"
 L["SELECT_CONTENT"] = "Select Content"
 L["NO_DATA_SELECTED"] = "Select specialization and content."
 
--- IMPORT
+-- IMPORT/EXPORT
 L["IMPORT_EXPORT"] = "Import/Export"
 L["IMPORT_EXPORT_TITLE"] = "Import / Export"
 L["IMPORT_PREVIEW_TITLE"] = "Import Preview"
@@ -31,6 +31,13 @@ L["CLEAR_ALL_CUSTOM_DATA"] = "Clear All Custom Data"
 L["CONFIRM_RESET_CUSTOM_DATA"] = "Are you sure you want to reset all custom data? This cannot be undone."
 L["CONFIRM_RESET_ALL_CUSTOM_DATA"] = "Are you sure you want to delete ALL custom data? This cannot be undone."
 L["CONFIRM_RESET_SELECTED_CUSTOM_DATA"] = "Are you sure you want to delete the selected custom sheets? This cannot be undone."
+
+-- EXPORT
+L["SELECT_ALL"] = "Select All"
+L["CLOSE"] = "Close"
+L["SETUP"] = "Setup"
+L["CREATED"] = "Created"
+L["N_SPECS"] = "spec(s)"
 
 -- IMPORT PREVIEW
 L["SETUP_CONTENTS"] = "Setup Contents:"
@@ -50,6 +57,11 @@ L["IMPORT_MERGE"] = "Import (Merge)"
 L["REPLACE"] = "Replace"
 L["CANCEL"] = "Cancel"
 
+-- IMPORT VIEW DETAILS
+L["SPEC_DETAILS"] = "Spec Details:"
+L["PREV"]  = "Prev"
+L["NEXT"]  = "Next"
+
 -- CUSTOM DATA VIEW
 L["SHEETS_SELECTED"] = "selected"
 
@@ -65,6 +77,10 @@ L["STATS_EDITOR_HELP_L2"] = "Example: INTELLECT > HASTE = CRIT > MASTERY"
 L["STATS_EDITOR_HELP_L3"] = "STRENGTH >> CRIT = HASTE > VERSATILITY"
 L["STATS_EDITOR_HELP_L5"] = "Stats: STRENGTH, AGILITY, INTELLECT, CRIT, HASTE, MASTERY, VERSATILITY"
 L["STATS_EDITOR_HELP_L6"] = "Operators: = (equal), > (greater), >> (much greater)"
+L["CONFIRM_RESET_SIMPLE_EDITOR"] = "Are you sure you want to reset this data? This cannot be undone."
+L["CONFIRM_RESET_STATS_EDITOR"] = "Are you sure you want to reset the stats? This cannot be undone."
+L["ALL_CUSTOM_SHEETS_REMOVED"] = "All custom sheets have been removed."
+L["N_CUSTOM_SHEETS_REMOVED"] = "%d custom sheet(s) removed."
 
 -- DATA
 L["STAT_PRIORITY"] = "Stat Priority"
@@ -120,5 +136,14 @@ L["MINIMAP_ICON_SHOWN"] = "Minimap icon shown."
 L["EDIT_LAYOUT"] = "Edit Layout"
 L["SAVE_LAYOUT"] = "Save Layout"
 L["EDIT_STATS"] = "Edit"
+L["CONFIRM_SAVE_LAYOUT"] = "Do you want to save the changes to the layout, reset to default, or cancel?"
+
+-- CONFIG
+L["RESET_POSITION_OPTION_NAME"] = "Reset Position"
+L["RESET_POSITION_OPTION_DESC"] = "Reset window position to center"
+L["SHOW_DATA_EDIT_BUTTONS_OPTION_NAME"] = "Show Data Edit Buttons"
+L["SHOW_DATA_EDIT_BUTTONS_OPTION_DESC"] = "Show or hide the data edit buttons (Edit, BiS, Alt) in each section."
+L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_NAME"] = "Show Layout Edit Button"
+L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_DESC"] = "Show or hide the layout edit button in the main UI."
 
 -- enUS.lua -- end of file

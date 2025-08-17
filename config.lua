@@ -2,10 +2,12 @@
 
 local ADDON_NAME, private = ... 
 
----@class MyCheatSheet
+---@type MyCheatSheet
 local MyCheatSheet = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME);
 
 -- Crear módulo Config
+---@class ConfigModule : AceModule
+---@field addon MyCheatSheet
 local module = MyCheatSheet:NewModule("Config", "AceEvent-3.0")
 
 ---@type AceConfig-3.0
@@ -79,7 +81,8 @@ function module:InitializeConfig()
     self:DebugPrint("InitializeConfig")
 
     -- Configuración por defecto
-    self.CONFIG_VERSION = 1
+    self.CONFIG_VERSION = 2
+
     self.addon.defaults = {
         profile = {
             configVersion = self.CONFIG_VERSION,
@@ -89,7 +92,10 @@ function module:InitializeConfig()
                     point = "CENTER",
                     x = 0,
                     y = 0
-                }
+                },
+                -- added VER.2
+                showDataEditButtons = true,
+                showLayoutEditButton = true
             },
             -- Layout editable por usuario (por perfil)
             layout = {
@@ -110,20 +116,6 @@ function module:InitializeConfig()
 
     -- Inicializar base de datos
     self.addon.db = LibStub("AceDB-3.0"):New("MyCheatSheetDB", self.addon.defaults, true)
-
-    --[[ REPARACIÓN INMEDIATA: asegurar layout y sections tras crear la base de datos
-    local repaired = false
-    if not self.addon.db.profile.layout or type(self.addon.db.profile.layout) ~= "table" then
-        self.addon.db.profile.layout = deepcopy(self.addon.defaults.profile.layout)
-        self:DebugPrint("[MIGRATION] Reparado layout ausente/corrupto (inmediato)")
-        repaired = true
-    end
-    if not self.addon.db.profile.layout.sections or type(self.addon.db.profile.layout.sections) ~= "table" or #self.addon.db.profile.layout.sections == 0 then
-        self.addon.db.profile.layout.sections = deepcopy(self.addon.defaults.profile.layout.sections)
-        self:DebugPrint("[MIGRATION] Reparado layout.sections vacío/corrupto (inmediato)")
-        repaired = true
-    end
-    ]]--
 
     -- Migración/configuración por versión
     if not self.addon.db.profile.configVersion then
@@ -146,17 +138,6 @@ function module:InitializeConfig()
     -- Versión Activa!
     self:DebugPrint("configVersion", self.CONFIG_VERSION)
 
-    --[[ Reparación forzada: asegurar que layout.sections existe y no está vacío
-    if not self.addon.db.profile.layout or type(self.addon.db.profile.layout) ~= "table" then
-        self.addon.db.profile.layout = deepcopy(self.addon.defaults.profile.layout)
-        self:DebugPrint("[MIGRATION] Reparado layout ausente/corrupto")
-    end
-    if not self.addon.db.profile.layout.sections or type(self.addon.db.profile.layout.sections) ~= "table" or #self.addon.db.profile.layout.sections == 0 then
-        self.addon.db.profile.layout.sections = deepcopy(self.addon.defaults.profile.layout.sections)
-        self:DebugPrint("[MIGRATION] Reparado layout.sections vacío/corrupto")
-    end
-    ]]--
-
     -- Crear opciones de configuración
     self:CreateConfigOptions()
 
@@ -168,7 +149,7 @@ end
 function module:CreateConfigOptions()
     self.configOptions = {
         type = "group",
-        name = "MyCheatSheet",
+        name = "My Cheat Sheet",
         handler = self,
         get = "GetOption",
         set = "SetOption",
@@ -188,14 +169,32 @@ function module:CreateConfigOptions()
                 args = {
                     resetPosition = {
                         type = "execute",
-                        name = "Reset Position",
-                        desc = "Reset window position to center",
+                        name = L["RESET_POSITION_OPTION_NAME"],
+                        desc = L["RESET_POSITION_OPTION_DESC"],
                         func = function() self:ResetPosition() end,
                         order = 1
+                    },
+                    showDataEditButtons = {
+                        type = "toggle",
+                        name = L["SHOW_DATA_EDIT_BUTTONS_OPTION_NAME"],
+                        desc = L["SHOW_DATA_EDIT_BUTTONS_OPTION_DESC"],
+                        get = function() return self.addon.db.profile.ui.showDataEditButtons end,
+                        set = function(_, val) self.addon.db.profile.ui.showDataEditButtons = val; if self.addon.MyCheatSheetFrame then self.addon:UpdateUI() end end,
+                        width = "full",
+                        order = 2
+                    },
+                    showLayoutEditButton = {
+                        type = "toggle",
+                        name = L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_NAME"],
+                        desc = L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_DESC"],
+                        get = function() return self.addon.db.profile.ui.showLayoutEditButton end,
+                        set = function(_, val) self.addon.db.profile.ui.showLayoutEditButton = val; if self.addon.MyCheatSheetFrame then self.addon:UpdateUI() end end,
+                        width = "full",
+                        order = 3
                     }
                 }
             },
-            
+
             -- DEBUG MODE
             debug = {
                 type = "group",
@@ -266,7 +265,7 @@ end
 --- Debug del Módulo
 function module:DebugPrint(...)
     if self:GetDebugMode() then
-        print("|cff00ffff[Config Module]|r", ...)
+        print("|cff00ff00[MCS]|r|cff00ffff[Config Module]|r", ...)
     end
 end
 
@@ -278,6 +277,41 @@ function module:GetDebugMode()
       end
     end
     return true
+end
+
+--- Getter for flag showDataEditButtons
+function module:GetShowDataEditButtons()
+    if self then
+      if self.addon.db and self.addon.db.profile.ui then
+          return self.addon.db.profile.ui.showDataEditButtons
+      else
+          return false
+      end
+    end
+    return true
+end
+
+--- Getter for flag showLayoutEditButton
+function module:GetShowLayoutEditButton()
+    if self then
+      if self.addon.db and self.addon.db.profile.ui then
+          return self.addon.db.profile.ui.showLayoutEditButton
+      else
+          return false
+      end
+    end
+    return true
+end
+
+function module:ResetLayoutToDefault()
+    -- Resetear layout a valores por defecto
+    self.addon.db.profile.layout = deepcopy(self.addon.defaults.profile.layout)
+    self:DebugPrint("Layout reset to default")
+
+    -- Aplicar cambios de UI
+    if self.addon.MyCheatSheetFrame then
+        self.addon:UpdateUI()
+    end
 end
 
 -- config.lua -- fin del archivo

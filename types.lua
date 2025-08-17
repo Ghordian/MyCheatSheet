@@ -32,10 +32,21 @@
 ---@field tier MyCheatSheetTier
 ---@field statsByContent table<string, MyCheatSheetContent>
 
----@class MyCheatSheet
+-- CORE
+
+---@class profiles Profiles
+---@field Default ProfileV1
+
+---@class MyCheatSheet : AceAddon
 ---@field selectedClass number
 ---@field selectedSpec number
 ---@field selectedContent string
+---@field defaults table
+---@field db AceDB
+---@field customOverrides table<number, MyCheatSheetSpecializationData>
+---@field profilekeys table
+---@field lastValidation table
+---@field profiles Profiles
 
 -- DATA V2
 
@@ -45,7 +56,7 @@
 ---@field trinkets MyCheatSheetTrinkets
 
 ---@class MyCheatSheetSpecializationDataV2
----@field MyCheatSheetContentV2
+---@field content MyCheatSheetContentV2
 ---@field consumables MyCheatSheetItemRow
 ---@field tier MyCheatSheetTier
 
@@ -61,5 +72,10 @@
 ---@field ui.position FramePosition  # Posición del frame principal
 ---@field layout table  # Layout de la UI
 ---@field layout.sections table<number, table>  # Secciones del layout
+---@field advanced.debugMode boolean  # Modo de depuración avanzado
+
+---@class ProfileV2 : ProfileV1
+---@field ui.showDataEditButton boolean  # Mostrar botón de edición de datos
+---@field ui.showLayoutEditButton boolean  # Mostrar botón de edición de layout
 
 -- types.lua -- fin del archivo

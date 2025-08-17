@@ -1,9 +1,9 @@
 -- minimap.lua
 local ADDON_NAME, private = ... 
 
----@class MyCheatSheet
+---@type MyCheatSheet
 local MyCheatSheet = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME);
----@class AceModule
+---@type AceModule
 local module = MyCheatSheet:NewModule("Minimap", "AceEvent-3.0")
 
 ---@type AceLocale-3.0
@@ -72,12 +72,12 @@ function module:OnMinimapClick(button)
         -- Click izquierdo: abrir panel principal
         self:DebugPrint("Minimap left click - opening main panel")
         self.addon:ToggleUI()
-        
+
     elseif button == "RightButton" then
         -- Click derecho: mostrar menú contextual (futuro)
         self:DebugPrint("Minimap right click - context menu (future)")
         -- Aquí se podría implementar un menú contextual
-        
+
     elseif button == "MiddleButton" then
         -- Click medio: toggle icono del minimapa
         self:ToggleMinimapIcon()
@@ -88,7 +88,7 @@ end
 ---@param tooltip Frame El tooltip frame
 function module:OnTooltipShow(tooltip)
     if not tooltip then return end
-    
+
     tooltip:AddLine("|cffffd700MyCheatSheet|r")
     tooltip:AddLine(" ")
     tooltip:AddLine("|cffadd8e6" .. (L["MINIMAP_TOOLTIP_LEFT_CLICK"] or "Left click: Open cheat sheet panel") .. "|r")
@@ -100,9 +100,9 @@ end
 --- Toggle la visibilidad del icono del minimapa
 function module:ToggleMinimapIcon()
     if not LibDBIcon then return end
-    
+
     MyCheatSheetDB.minimapIcon.hide = not MyCheatSheetDB.minimapIcon.hide
-    
+
     if MyCheatSheetDB.minimapIcon.hide then
         LibDBIcon:Hide(ADDON_NAME)
         print("|cffffd700[MyCheatSheet]|r " .. (L["MINIMAP_ICON_HIDDEN"] or "Minimap icon hidden. Use /mcs minimap to show it again."))
@@ -115,7 +115,7 @@ end
 --- Muestra el icono del minimapa
 function module:ShowMinimapIcon()
     if not LibDBIcon then return end
-    
+
     MyCheatSheetDB.minimapIcon.hide = false
     LibDBIcon:Show(ADDON_NAME)
 end
@@ -123,7 +123,7 @@ end
 --- Oculta el icono del minimapa
 function module:HideMinimapIcon()
     if not LibDBIcon then return end
-    
+
     MyCheatSheetDB.minimapIcon.hide = true
     LibDBIcon:Hide(ADDON_NAME)
 end

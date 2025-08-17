@@ -1,9 +1,7 @@
 -- export.lua
 local ADDON_NAME, private = ... 
 
----@class MyCheatSheet
-local MyCheatSheet = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME);
----@class AceModule
+local MyCheatSheet = LibStub("AceAddon-3.0"):GetAddon(ADDON_NAME)
 local module = MyCheatSheet:NewModule("Export", "AceEvent-3.0")
 
 ---@type AceLocale-3.0
@@ -57,18 +55,13 @@ end
 function module:OnInitialize()
     self.addon = MyCheatSheet
     self.data = self.addon.data
-    
-    -- Inicializar estructura para datos custom/importados
-    if not MyCheatSheetDB then
-        MyCheatSheetDB = {}
+
+    if not MyCheatSheetDB.customOverrides then
+        MyCheatSheetDB.customOverrides = {}
     end
-    
-    if not MyCheatSheetDB.customSheets then
-        MyCheatSheetDB.customSheets = {}
-    end
-    
+
     -- Los datos custom van aquí, no en self.data
-    self.customData = MyCheatSheetDB.customSheets
+    self.customData = MyCheatSheetDB.customOverrides
 end
 
 --- Tipos de exportación disponibles
@@ -91,7 +84,7 @@ function module:ExportSheets(exportType, selection)
         author = UnitName("player") .. "-" .. GetRealmName(),
         sheets = {}
     }
-    
+
     if exportType == EXPORT_FORMATS.SINGLE_SPEC then
         -- Exportar una spec específica: {classID = 8, specID = 64}
         local classID, specID = selection.classID, selection.specID
@@ -107,11 +100,11 @@ function module:ExportSheets(exportType, selection)
         if self.data.sheets[classID] then
             exportData.sheets[classID] = self.data.sheets[classID]
         end
-        
+
     elseif exportType == EXPORT_FORMATS.ALL_DATA then
         -- Exportar todo
         exportData.sheets = self.data.sheets
-        
+
     elseif exportType == EXPORT_FORMATS.CUSTOM_SELECTION then
         -- Exportar selección custom: {specs = {{classID=8, specID=64}, {classID=1, specID=71}}}
         for _, spec in ipairs(selection.specs) do
@@ -124,10 +117,10 @@ function module:ExportSheets(exportType, selection)
             end
         end
     end
-    
+
     -- Serializar datos con AceSerializer
     local serializedData = AceSerializer:Serialize(exportData)
-    
+
     -- Comprimir para ahorrar espacio (si LibDeflate está disponible)
     if LibDeflate then
         local compressedData = LibDeflate:CompressDeflate(serializedData)
@@ -146,7 +139,7 @@ end
 function module:ImportSheets(importData, importMode)
     -- Decodificar datos
     local decodedData
-    
+
     if LibDeflate then
         decodedData = LibDeflate:DecodeForPrint(importData)
         if decodedData then
@@ -155,17 +148,17 @@ function module:ImportSheets(importData, importMode)
     else
         decodedData = self:DecodeBase64(importData)
     end
-    
+
     if not decodedData then
         return false, "Invalid import format or corrupted data"
     end
-    
+
     -- Deserializar con AceSerializer
     local success, importedData = AceSerializer:Deserialize(decodedData)
     if not success or not importedData or not importedData.sheets then
         return false, "Invalid data structure"
     end
-    
+
     -- Validar datos importados
     local isValid, validationErrors = self:ValidateImportedData(importedData.sheets)
     if not isValid then
@@ -175,7 +168,7 @@ function module:ImportSheets(importData, importMode)
             return false, "Imported data failed validation: " .. tostring(validationErrors[1])
         end
     end
-    
+
     if importMode == "validate_only" then
         return true, {
             specs = self:CountImportedSpecs(importedData.sheets),
@@ -184,10 +177,10 @@ function module:ImportSheets(importData, importMode)
             version = importedData.version
         }
     end
-    
+
     -- Aplicar importación
     local importedSpecs = 0
-    
+
     if importMode == "replace" then
         -- Reemplazar completamente
         for classID, classData in pairs(importedData.sheets) do
@@ -199,7 +192,7 @@ function module:ImportSheets(importData, importMode)
                 importedSpecs = importedSpecs + 1
             end
         end
-        
+
     elseif importMode == "merge" then
         -- Fusionar manteniendo existentes
         for classID, classData in pairs(importedData.sheets) do
@@ -214,7 +207,9 @@ function module:ImportSheets(importData, importMode)
             end
         end
     end
-    
+
+    MyCheatSheet:SendMessage("MCS_CUSTOMSHEETS_REFRESH")
+
     return true, string.format("Successfully imported %d specs", importedSpecs)
 end
 
@@ -222,7 +217,7 @@ end
 ---@param args table
 function module:HandleExportCommand(args)
     local command = args[2] and args[2]:lower()
-    
+
     if command == "spec" then
         -- /mcs export spec 8 64 (classID specID)
         local classID, specID = tonumber(args[3]), tonumber(args[4])
@@ -230,10 +225,10 @@ function module:HandleExportCommand(args)
             print("|cffff0000Usage: /mcs export spec <classID> <specID>|r")
             return
         end
-        
+
         local exportString = self:ExportSheets(EXPORT_FORMATS.SINGLE_SPEC, {classID = classID, specID = specID})
         self:DisplayExportResult(exportString, "Single Spec")
-        
+
     elseif command == "class" then
         -- /mcs export class 8 (classID)
         local classID = tonumber(args[3])
@@ -241,10 +236,10 @@ function module:HandleExportCommand(args)
             print("|cffff0000Usage: /mcs export class <classID>|r")
             return
         end
-        
+
         local exportString = self:ExportSheets(EXPORT_FORMATS.SINGLE_CLASS, {classID = classID})
         self:DisplayExportResult(exportString, "Single Class")
-        
+
     elseif command == "all" then
         -- /mcs export all
         local exportString = self:ExportSheets(EXPORT_FORMATS.ALL_DATA, {})
@@ -263,20 +258,20 @@ end
 function module:HandleImportCommand(args)
     local importData = args[2]
     local mode = args[3] or "preview" -- preview, merge, replace, validate
-    
+
     if not importData then
         print("|cffff0000Usage: /mcs import <data_string> [preview|merge|replace|validate]|r")
         return
     end
-    
+
     -- Si el modo es preview, mostrar la ventana de vista previa
     if mode == "preview" then
         self:ShowImportPreview(importData)
         return
     end
-    
+
     local success, result = self:ImportSheets(importData, mode)
-    
+
     if success then
         if mode == "validate_only" then
             print(string.format("|cff00ff00[VALID] Import data: %d specs from %s|r", 
@@ -297,7 +292,7 @@ end
 function module:DisplayExportResult(exportString, exportType)
     print(string.format("|cff00ff00[EXPORTED] %s data ready|r", exportType))
     print(string.format("|cffffd700[SIZE] %d characters|r", #exportString))
-    
+
     -- Guardar en SavedVariables para fácil acceso
     if not MyCheatSheetDB then MyCheatSheetDB = {} end
     MyCheatSheetDB.lastExport = {
@@ -305,9 +300,9 @@ function module:DisplayExportResult(exportString, exportType)
         type = exportType,
         timestamp = date("%Y-%m-%d %H:%M:%S")
     }
-    
+
     print("|cffffd700[SAVED] Export saved to MyCheatSheetDB.lastExport.data|r")
-    
+
     -- Mostrar la ventana de export con el texto para copiar
     self:ShowExportUI(exportString, exportType)
 end
@@ -317,18 +312,18 @@ end
 ---@return boolean isValid, table|nil errors
 function module:ValidateImportedData(sheets)
     local errors = {}
-    
+
     -- Validación básica de estructura
     if type(sheets) ~= "table" then
         table.insert(errors, "Sheets data is not a table")
         return false, errors
     end
-    
+
     for classID, classData in pairs(sheets) do
         if type(classID) ~= "number" then
             table.insert(errors, "Invalid classID: " .. tostring(classID))
         end
-        
+
         if type(classData) ~= "table" then
             table.insert(errors, "Class data is not a table for classID: " .. tostring(classID))
         else
@@ -336,14 +331,14 @@ function module:ValidateImportedData(sheets)
                 if type(specID) ~= "number" then
                     table.insert(errors, "Invalid specID: " .. tostring(specID) .. " for classID: " .. tostring(classID))
                 end
-                
+
                 if type(specData) ~= "table" then
                     table.insert(errors, "Spec data is not a table for classID: " .. tostring(classID) .. ", specID: " .. tostring(specID))
                 end
             end
         end
     end
-    
+
     return #errors == 0, (#errors > 0 and errors or nil)
 end
 
@@ -368,7 +363,7 @@ function module:SerializeTable(t)
     local function serialize(obj, level)
         level = level or 0
         local indent = string.rep("  ", level)
-        
+
         if type(obj) == "table" then
             local result = "{\n"
             for k, v in pairs(obj) do
@@ -382,7 +377,7 @@ function module:SerializeTable(t)
             return tostring(obj)
         end
     end
-    
+
     return serialize(t)
 end
 
@@ -426,11 +421,11 @@ function module:GetCombinedSpecData(classID, specID)
     if self.customData[classID] and self.customData[classID][specID] then
         return self.customData[classID][specID]
     end
-    
+
     if self.data.sheets[classID] and self.data.sheets[classID][specID] then
         return self.data.sheets[classID][specID]
     end
-    
+
     return nil
 end
 
@@ -438,37 +433,37 @@ end
 ---@param args table
 function module:HandleCustomCommand(args)
     local command = args[2] and args[2]:lower()
-    
+
     if command == "list" then
         -- /mcs custom list
         local count = 0
         print("|cffffd700=== CUSTOM SHEETS ===|r")
-        
+
         for classID, classData in pairs(self.customData) do
             local classInfo = C_CreatureInfo.GetClassInfo(classID)
             local className = classInfo and classInfo.className or ("Class " .. classID)
-            
+
             for specID, specData in pairs(classData) do
                 local specInfo = GetSpecializationInfoByID(specID)
                 local specName = specInfo or ("Spec " .. specID)
-                
+
                 print(string.format("  |cff00ff00%s - %s|r (Source: Custom)", className, specName))
                 count = count + 1
             end
         end
-        
+
         if count == 0 then
             print("  |cffff8800No custom sheets found|r")
         else
             print(string.format("|cffffd700Total: %d custom sheets|r", count))
         end
-        
+
     elseif command == "clear" then
         -- /mcs custom clear
         self.customData = {}
-        MyCheatSheetDB.customSheets = {}
+        MyCheatSheetDB.customOverrides = {}
         print("|cff00ff00[SUCCESS] All custom sheets cleared|r")
-        
+
     elseif command == "remove" then
         -- /mcs custom remove 8 64 (classID specID)
         local classID, specID = tonumber(args[3]), tonumber(args[4])
@@ -476,26 +471,26 @@ function module:HandleCustomCommand(args)
             print("|cffff0000Usage: /mcs custom remove <classID> <specID>|r")
             return
         end
-        
+
         if self.customData[classID] and self.customData[classID][specID] then
             self.customData[classID][specID] = nil
-            
+
             -- Limpiar clase vacía
             local hasSpecs = false
             for _ in pairs(self.customData[classID]) do
                 hasSpecs = true
                 break
             end
-            
+
             if not hasSpecs then
                 self.customData[classID] = nil
             end
-            
+
             print(string.format("|cff00ff00[SUCCESS] Removed custom sheet for class %d, spec %d|r", classID, specID))
         else
             print(string.format("|cffff8800[INFO] No custom sheet found for class %d, spec %d|r", classID, specID))
         end
-        
+
     else
         print("|cffffd700Custom sheet commands:|r")
         print("  |cffffd700/mcs custom list|r - List all custom sheets")
@@ -512,20 +507,20 @@ function module:ShowExportUI(exportString, exportType)
     if not self.exportFrame then
         self.exportFrame = self:CreateExportFrame()
     end
-    
+
     -- Configurar contenido
-    self.exportFrame.title:SetText("Export: " .. exportType)
+    self.exportFrame.title:SetText(L["EXPORT"] .. ": " .. exportType)
     self.exportFrame.editBox:SetText(exportString)
     self.exportFrame.sizeLabel:SetText(string.format("Size: %d characters", #exportString))
-    
+
     -- Posicionar ligeramente desplazado del centro
     self.exportFrame:ClearAllPoints()
     self.exportFrame:SetPoint("CENTER", UIParent, "CENTER")
-    
+
     -- Mostrar frame y asegurar que esté por encima
     self.exportFrame:Show()
     self.exportFrame:Raise()
-    
+
     -- Dar foco al EditBox y seleccionar todo el texto
     C_Timer.After(0.1, function()
         self.exportFrame.editBox:SetFocus()
@@ -544,27 +539,27 @@ function module:CreateExportFrame()
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-    
+
     -- Asegurar que aparezca por encima del panel de Import/Export
     frame:SetFrameStrata("FULLSCREEN")
     frame:SetFrameLevel(2000)
-    
+
     -- Título
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     frame.title:SetPoint("TOP", frame, "TOP", 0, -5)
-    
+
     -- EditBox scrollable
     local scrollFrame = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 15, -30)
     scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -35, 40)
-    
+
     local editBox = CreateFrame("EditBox", nil, scrollFrame)
     editBox:SetMultiLine(true)
     editBox:SetFontObject(ChatFontNormal)
     editBox:SetWidth(scrollFrame:GetWidth())
     editBox:SetAutoFocus(true) -- Cambiar a true para que tome foco automáticamente
     editBox:SetScript("OnEscapePressed", function() frame:Hide() end)
-    
+
     -- Añadir scripts útiles para facilitar la copia
     editBox:SetScript("OnEnterPressed", function(self)
         -- Ctrl+Enter para seleccionar todo
@@ -572,41 +567,43 @@ function module:CreateExportFrame()
             self:HighlightText()
         end
     end)
-    
+
     editBox:SetScript("OnMouseUp", function(self)
         -- Click para seleccionar todo el texto
         self:HighlightText()
     end)
-    
+
     editBox:SetScript("OnReceiveDrag", function(self)
         -- Evitar arrastrar contenido accidentalmente
         return false
     end)
-    
+
     scrollFrame:SetScrollChild(editBox)
     frame.editBox = editBox
-    
+
     -- Label de tamaño
     frame.sizeLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.sizeLabel:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 15, 15)
-    
+
     -- Botón para seleccionar todo
     local selectAllBtn = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
     selectAllBtn:SetPoint("BOTTOM", frame, "BOTTOM", -50, 10)
     selectAllBtn:SetSize(100, 22)
-    selectAllBtn:SetText("Select All")
+    selectAllBtn:SetText(L["SELECT_ALL"])
+    selectAllBtn:SetWidth(selectAllBtn:GetFontString():GetStringWidth() + 24)
     selectAllBtn:SetScript("OnClick", function() 
         editBox:SetFocus()
         editBox:HighlightText()
     end)
-    
+
     -- Botón cerrar
     local closeBtn = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
     closeBtn:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -15, 10)
     closeBtn:SetSize(80, 22)
-    closeBtn:SetText("Close")
+    closeBtn:SetText(L["CLOSE"])
+    closeBtn:SetWidth(closeBtn:GetFontString():GetStringWidth() + 24)
     closeBtn:SetScript("OnClick", function() frame:Hide() end)
-    
+
     frame:Hide()
     return frame
 end
@@ -616,20 +613,20 @@ end
 function module:ShowImportPreview(importData)
     -- Validar y obtener información del import primero
     local success, previewData = self:ImportSheets(importData, "validate_only")
-    
+
     if not success then
         print("|cffff0000[ERROR] Invalid import data: " .. tostring(previewData) .. "|r")
         return
     end
-    
+
     -- Crear frame de vista previa si no existe
     if not self.previewFrame then
         self.previewFrame = self:CreateImportPreviewFrame()
     end
-    
+
     -- Configurar contenido de la vista previa
     self:PopulatePreviewData(previewData, importData)
-    
+
     -- Mostrar frame
     self.previewFrame:Show()
     self.previewFrame:Raise()
@@ -646,11 +643,11 @@ function module:CreateImportPreviewFrame()
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-    
+
     -- Asegurar que aparezca por encima
     frame:SetFrameStrata("FULLSCREEN")
     frame:SetFrameLevel(2100)
-    
+
     -- Estrategia simple: interceptar ESC directamente para este frame
     local originalOnKeyDown = frame:GetScript("OnKeyDown")
     frame:SetScript("OnKeyDown", function(self, key)
@@ -662,107 +659,109 @@ function module:CreateImportPreviewFrame()
             originalOnKeyDown(self, key)
         end
     end)
-    
+
     frame:SetScript("OnShow", function(self)
         -- Habilitar captura de teclado solo para este frame
         self:EnableKeyboard(true)
         self:SetPropagateKeyboardInput(false) -- No propagar teclas a otros frames
     end)
-    
+
     frame:SetScript("OnHide", function(self)
         self:EnableKeyboard(false)
     end)
-    
+
     -- Título
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    frame.title:SetText(L["IMPORT_PREVIEW_TITLE"] or "Import Preview")
-    frame.title:SetPoint("TOP", frame, "TOP", 0, -5) -- Volver a la posición original que funcionaba
-    
+    frame.title:SetText(L["IMPORT_PREVIEW_TITLE"])
+    frame.title:SetPoint("TOP", frame, "TOP", 0, -5)
+
     -- Área de información principal
     local infoArea = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     infoArea:SetPoint("TOPLEFT", frame, "TOPLEFT", 15, -40)
     infoArea:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -35, -40)
-    infoArea:SetHeight(320) -- Aumentamos altura para usar mejor el espacio
-    
+    infoArea:SetHeight(320)
+
     local infoContent = CreateFrame("Frame", nil, infoArea)
     infoContent:SetWidth(450)
     infoArea:SetScrollChild(infoContent)
     frame.infoContent = infoContent
-    
+
     -- Labels para mostrar información
     frame.setupName = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     frame.setupName:SetPoint("TOPLEFT", infoContent, "TOPLEFT", 5, -5)
     frame.setupName:SetTextColor(1, 1, 0.8)
-    
+
     frame.authorInfo = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.authorInfo:SetPoint("TOPLEFT", frame.setupName, "BOTTOMLEFT", 0, -5)
     frame.authorInfo:SetTextColor(0.8, 0.8, 0.8)
-    
+
     frame.timestampInfo = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.timestampInfo:SetPoint("TOPLEFT", frame.authorInfo, "BOTTOMLEFT", 0, -2)
     frame.timestampInfo:SetTextColor(0.8, 0.8, 0.8)
-    
+
     -- Separador
     local separator1 = infoContent:CreateTexture(nil, "ARTWORK")
     separator1:SetTexture("Interface\\Common\\UI-TooltipDivider-Transparent")
     separator1:SetPoint("TOPLEFT", frame.timestampInfo, "BOTTOMLEFT", -5, -10)
     separator1:SetPoint("TOPRIGHT", infoContent, "TOPRIGHT", -5, -10)
     separator1:SetHeight(8)
-    
+
     -- Contenido del setup
     frame.contentTitle = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    frame.contentTitle:SetText(L["SETUP_CONTENTS"] or "Setup Contents:")
+    frame.contentTitle:SetText(L["SETUP_CONTENTS"])
     frame.contentTitle:SetPoint("TOPLEFT", separator1, "BOTTOMLEFT", 5, -10)
     frame.contentTitle:SetTextColor(0.8, 1, 0.8)
-    
+
     frame.specsInfo = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.specsInfo:SetPoint("TOPLEFT", frame.contentTitle, "BOTTOMLEFT", 10, -5)
     frame.specsInfo:SetTextColor(1, 1, 1)
-    
+
     frame.detailsInfo = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.detailsInfo:SetPoint("TOPLEFT", frame.specsInfo, "BOTTOMLEFT", 0, -10)
     frame.detailsInfo:SetTextColor(0.9, 0.9, 0.9)
     frame.detailsInfo:SetJustifyH("LEFT")
     frame.detailsInfo:SetWidth(420)
-    
+
     -- Separador 2
     local separator2 = infoContent:CreateTexture(nil, "ARTWORK")
     separator2:SetTexture("Interface\\Common\\UI-TooltipDivider-Transparent")
     separator2:SetPoint("TOPLEFT", frame.detailsInfo, "BOTTOMLEFT", -15, -15)
     separator2:SetPoint("TOPRIGHT", infoContent, "TOPRIGHT", -5, -15)
     separator2:SetHeight(8)
-    
+
     -- Advertencias
     frame.warningTitle = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    frame.warningTitle:SetText(L["IMPORT_ACTIONS"] or "Import Actions:")
+    frame.warningTitle:SetText(L["IMPORT_ACTIONS"])
     frame.warningTitle:SetPoint("TOPLEFT", separator2, "BOTTOMLEFT", 5, -10)
     frame.warningTitle:SetTextColor(1, 0.8, 0.2)
-    
+
     frame.warningText = infoContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.warningText:SetPoint("TOPLEFT", frame.warningTitle, "BOTTOMLEFT", 10, -5)
     frame.warningText:SetTextColor(1, 0.9, 0.7)
     frame.warningText:SetJustifyH("LEFT")
     frame.warningText:SetWidth(420)
-    
+
     -- Área de botones
     local buttonArea = CreateFrame("Frame", nil, frame)
     buttonArea:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 15, 15)
     buttonArea:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -15, 15)
     buttonArea:SetHeight(70) -- Reducimos altura para optimizar espacio
-    
+
     -- Botón Ver Detalles
     frame.detailsButton = CreateFrame("Button", nil, buttonArea, "UIPanelButtonTemplate")
-    frame.detailsButton:SetText(L["VIEW_DETAILS"] or "View Details")
+    frame.detailsButton:SetText(L["VIEW_DETAILS"])
+    frame.detailsButton:SetWidth(frame.detailsButton:GetFontString():GetStringWidth() + 24)
     frame.detailsButton:SetSize(100, 25)
     frame.detailsButton:SetPoint("BOTTOMLEFT", buttonArea, "BOTTOMLEFT", 0, 35)
     frame.detailsButton:Disable()
     frame.detailsButton:SetScript("OnClick", function() 
         print("|cffff8800[INFO] TODO.|r")
     end)
-    
+
     -- Botones de importación
     frame.mergeButton = CreateFrame("Button", nil, buttonArea, "UIPanelButtonTemplate")
-    frame.mergeButton:SetText(L["IMPORT_MERGE"] or "Import (Merge)")
+    frame.mergeButton:SetText(L["IMPORT_MERGE"])
+    frame.mergeButton:SetWidth(frame.mergeButton:GetFontString():GetStringWidth() + 24)
     frame.mergeButton:SetSize(150, 25) -- Más ancho para texto largo en español
     frame.mergeButton:SetPoint("BOTTOMLEFT", buttonArea, "BOTTOMLEFT", 0, 0)
     frame.mergeButton:SetScript("OnClick", function() 
@@ -770,9 +769,10 @@ function module:CreateImportPreviewFrame()
         frame:Hide()
         print("|cff00ff00[SUCCESS] Setup imported successfully (merged with existing data)|r")
     end)
-    
+
     frame.replaceButton = CreateFrame("Button", nil, buttonArea, "UIPanelButtonTemplate")
-    frame.replaceButton:SetText(L["REPLACE"] or "Replace")
+    frame.replaceButton:SetText(L["REPLACE"])
+    frame.replaceButton:SetWidth(frame.replaceButton:GetFontString():GetStringWidth() + 24)
     frame.replaceButton:SetSize(100, 25)
     frame.replaceButton:SetPoint("LEFT", frame.mergeButton, "RIGHT", 10, 0)
     frame.replaceButton:SetScript("OnClick", function() 
@@ -780,14 +780,15 @@ function module:CreateImportPreviewFrame()
         frame:Hide()
         print("|cff00ff00[SUCCESS] Setup imported successfully (replaced existing data)|r")
     end)
-    
+
     -- Botón Cancelar
     frame.cancelButton = CreateFrame("Button", nil, buttonArea, "UIPanelButtonTemplate")
-    frame.cancelButton:SetText(L["CANCEL"] or "Cancel")
+    frame.cancelButton:SetText(L["CANCEL"])
+    frame.cancelButton:SetWidth(frame.cancelButton:GetFontString():GetStringWidth() + 24)
     frame.cancelButton:SetSize(80, 25)
     frame.cancelButton:SetPoint("BOTTOMRIGHT", buttonArea, "BOTTOMRIGHT", 0, 0)
     frame.cancelButton:SetScript("OnClick", function() frame:Hide() end)
-    
+
     frame:Hide()
     return frame
 end
@@ -799,11 +800,11 @@ function module:PopulatePreviewData(previewData, importData)
     local frame = self.previewFrame
     ---@cast frame +{importData: string}
     frame.importData = importData -- Guardar para usar en los botones
-    
+
     -- Decodificar los datos para obtener más información
     local success, fullData = self:GetImportedDataDetails(importData)
     local setupInfo = success and fullData or {}
-    
+
     -- Información básica
     local setupName = "Custom Setup"
     if setupInfo.exportType then
@@ -815,7 +816,7 @@ function module:PopulatePreviewData(previewData, importData)
             setupName = "Complete Dataset"
         end
     end
-    
+
     -- Intentar obtener más contexto del contenido
     if success and setupInfo.sheets then
         local firstClassID, firstClassData = next(setupInfo.sheets)
@@ -823,14 +824,14 @@ function module:PopulatePreviewData(previewData, importData)
             local className = self:GetClassName(tonumber(firstClassID))
             local specCount = 0
             local firstSpecID = nil
-            
+
             for specID, _ in pairs(firstClassData) do
                 specCount = specCount + 1
                 if not firstSpecID then
                     firstSpecID = specID
                 end
             end
-            
+
             if setupInfo.exportType == "single" and firstSpecID then
                 local specName = self:GetSpecName(tonumber(firstSpecID))
                 setupName = string.format("%s %s Setup", className, specName)
@@ -839,25 +840,25 @@ function module:PopulatePreviewData(previewData, importData)
             end
         end
     end
-    
-    frame.setupName:SetText("Setup: " .. setupName)
-    frame.authorInfo:SetText("Author: " .. (previewData.author or "Unknown"))
-    frame.timestampInfo:SetText("Created: " .. (previewData.timestamp or "Unknown"))
-    
+
+    frame.setupName:SetText(L["SETUP"] .. ": " .. setupName)
+    frame.authorInfo:SetText(L["AUTHOR"] .. ": " .. (previewData.author or "Unknown"))
+    frame.timestampInfo:SetText(L["CREATED"] .. ": " .. (previewData.timestamp or "Unknown"))
+
     -- Información de contenido  
-    local specsText = string.format(L["SPECIALIZATIONS_WILL_BE_IMPORTED"] or "%d specialization(s) will be imported", previewData.specs or 0)
+    local specsText = string.format(L["SPECIALIZATIONS_WILL_BE_IMPORTED"], previewData.specs or 0)
     frame.specsInfo:SetText(specsText)
-    
+
     -- Detalles adicionales
     local details = {}
-    table.insert(details, L["EQUIPMENT_AND_STAT_CONFIGS"] or "Equipment and stat configurations")
-    table.insert(details, L["COMPATIBLE_WITH_CURRENT_VERSION"] or "Compatible with current addon version")
-    table.insert(details, L["ALL_DATA_PASSED_VALIDATION"] or "All data has passed validation checks")
-    
+    table.insert(details, L["EQUIPMENT_AND_STAT_CONFIGS"])
+    table.insert(details, L["COMPATIBLE_WITH_CURRENT_VERSION"])
+    table.insert(details, L["ALL_DATA_PASSED_VALIDATION"])
+
     if setupInfo.version then
-        table.insert(details, string.format(L["EXPORT_VERSION"] or "Export version: %s", tostring(setupInfo.version)))
+        table.insert(details, string.format(L["EXPORT_VERSION"], tostring(setupInfo.version)))
     end
-    
+
     -- Información específica de clases/specs si está disponible
     if success and setupInfo.sheets then
         local classCount = 0
@@ -866,45 +867,45 @@ function module:PopulatePreviewData(previewData, importData)
             classCount = classCount + 1
             local specCount = 0
             local classSpecDetails = {}
-            
+
             for specID, _ in pairs(classData) do
                 specCount = specCount + 1
                 local specName = self:GetSpecName(tonumber(specID))
                 table.insert(classSpecDetails, specName)
             end
-            
+
             local className = self:GetClassName(tonumber(classID))
             if #classSpecDetails > 0 then
                 table.insert(specDetails, string.format("  %s: %s", className, table.concat(classSpecDetails, ", ")))
             else
-                table.insert(specDetails, string.format("  %s: %d spec(s)", className, specCount))
+                table.insert(specDetails, string.format("  %s: %d %s", className, specCount, L["N_SPECS"]))
             end
         end
-        
+
         if #specDetails > 0 then
             table.insert(details, "")
-            table.insert(details, L["CONTAINS_DATA_FOR"] or "Contains data for:")
+            table.insert(details, L["CONTAINS_DATA_FOR"] )
             for _, detail in ipairs(specDetails) do
                 table.insert(details, detail)
             end
         end
     end
-    
+
     frame.detailsInfo:SetText(table.concat(details, "\n"))
-    
+
     -- Advertencias dinámicas
     local warnings = {}
     if previewData.specs > 5 then
-        table.insert(warnings, string.format(L["LARGE_IMPORT_WARNING"] or "Large import (%d specs) - may take a moment", previewData.specs))
+        table.insert(warnings, string.format(L["LARGE_IMPORT_WARNING"], previewData.specs))
     else
-        table.insert(warnings, L["WILL_ADD_NEW_DATA"] or "This will add new data to your custom sheets")
+        table.insert(warnings, L["WILL_ADD_NEW_DATA"])
     end
-    
-    table.insert(warnings, L["EXISTING_DATA_OVERWRITTEN"] or "Existing data with same class/spec may be overwritten (Replace mode)")
-    table.insert(warnings, L["MERGE_MODE_PRESERVES"] or "Merge mode will preserve existing data when possible")
-    
+
+    table.insert(warnings, L["EXISTING_DATA_OVERWRITTEN"])
+    table.insert(warnings, L["MERGE_MODE_PRESERVES"])
+
     frame.warningText:SetText(table.concat(warnings, "\n"))
-    
+
     -- Ajustar altura del contenido dinámicamente
     local baseHeight = 200
     local extraHeight = math.max(0, (#details - 3) * 12) + math.max(0, (#warnings - 3) * 12)
@@ -917,7 +918,7 @@ end
 function module:GetImportedDataDetails(importData)
     -- Decodificar datos
     local decodedData
-    
+
     if LibDeflate then
         decodedData = LibDeflate:DecodeForPrint(importData)
         if decodedData then
@@ -926,17 +927,17 @@ function module:GetImportedDataDetails(importData)
     else
         decodedData = self:DecodeBase64(importData)
     end
-    
+
     if not decodedData then
         return false, nil
     end
-    
+
     -- Deserializar con AceSerializer
     local success, importedData = AceSerializer:Deserialize(decodedData)
     if not success or not importedData then
         return false, nil
     end
-    
+
     return true, importedData
 end
 
@@ -956,7 +957,7 @@ end
 ---@param specID number
 ---@return string specName  
 function module:GetSpecName(specID)
---[[ 
+--[[
     https://warcraft.wiki.gg/wiki/API_C_SpecializationInfo.GetSpecializationInfo (index) 
     https://warcraft.wiki.gg/wiki/API_GetSpecializationInfoByID
     id, name, description, icon, role, classFile, className = GetSpecializationInfoByID(specID)
@@ -1078,11 +1079,11 @@ function module:CreateImportDetailsFrame()
     -- Título
     frame.titleLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     frame.titleLabel:SetPoint("TOP", frame, "TOP", 0, -5)
-    frame.titleLabel:SetText("Spec Details")
+    frame.titleLabel:SetText(L["SPEC_DETAILS"])
 
     -- Botones de navegación
     frame.prevButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    frame.prevButton:SetText("< Prev")
+    frame.prevButton:SetText("< " .. L["PREV"])
     frame.prevButton:SetSize(80, 22)
     frame.prevButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 20, 15)
     frame.prevButton:SetScript("OnClick", function(self)
@@ -1093,7 +1094,7 @@ function module:CreateImportDetailsFrame()
     end)
 
     frame.nextButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    frame.nextButton:SetText("Next >")
+    frame.nextButton:SetText(L["NEXT"] .. " >")
     frame.nextButton:SetSize(80, 22)
     frame.nextButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 15)
     frame.nextButton:SetScript("OnClick", function(self)
@@ -1110,7 +1111,7 @@ function module:CreateImportDetailsFrame()
 
     -- Botón cerrar
     frame.closeButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    frame.closeButton:SetText("Close")
+    frame.closeButton:SetText(L["CLOSE"])
     frame.closeButton:SetSize(80, 22)
     frame.closeButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, -5)
     frame.closeButton:SetScript("OnClick", function() frame:Hide() end)
