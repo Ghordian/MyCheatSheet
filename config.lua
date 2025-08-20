@@ -81,7 +81,11 @@ function module:InitializeConfig()
     self:DebugPrint("InitializeConfig")
 
     -- Configuración por defecto
-    self.CONFIG_VERSION = 2
+--[[-- Configuración por defecto
+    self.CONFIG_VERSION = 1 -- added layout / sections 
+    self.CONFIG_VERSION = 2 -- added showDataEditButtons, showLayoutEditButton
+  ]]--
+    self.CONFIG_VERSION = 3 -- added opaqueBackground, hideSectionTitles
 
     self.addon.defaults = {
         profile = {
@@ -95,7 +99,10 @@ function module:InitializeConfig()
                 },
                 -- added VER.2
                 showDataEditButtons = true,
-                showLayoutEditButton = true
+                showLayoutEditButton = true,
+                -- added VER.3
+                opaqueBackground = false,
+                hideSectionTitles = false,
             },
             -- Layout editable por usuario (por perfil)
             layout = {
@@ -127,7 +134,21 @@ function module:InitializeConfig()
         if not self.addon.db.profile.layout then
             self.addon.db.profile.layout = deepcopy(self.addon.defaults.profile.layout)
         end
-        self.addon.db.profile.configVersion = self.CONFIG_VERSION
+        self.addon.db.profile.configVersion = 1
+    end
+
+    -- Migración de versión 1 a 2: añadir showDataEditButtons y showLayoutEditButton si no existen
+    if self.addon.db.profile.configVersion < 2 then
+        if not self.addon.db.profile.ui.showDataEditButtons then
+            self.addon.db.profile.ui.showDataEditButtons = self.addon.defaults.profile.ui.showDataEditButtons
+        end
+        if not self.addon.db.profile.ui.showLayoutEditButton then
+            self.addon.db.profile.ui.showLayoutEditButton = self.addon.defaults.profile.ui.showLayoutEditButton
+        end
+        self.addon.db.profile.configVersion = 2
+    end
+    if self.addon.db.profile.configVersion < 3 then
+        self.addon.db.profile.configVersion = 3
     end
 
     -- Migraciones futuras: ejemplo
@@ -191,7 +212,35 @@ function module:CreateConfigOptions()
                         set = function(_, val) self.addon.db.profile.ui.showLayoutEditButton = val; if self.addon.MyCheatSheetFrame then self.addon:UpdateUI() end end,
                         width = "full",
                         order = 3
-                    }
+                    },
+                    opaqueBackground = {
+                        type = "toggle",
+                        name = L["OPAQUE_BACKGROUND_OPTION_NAME"],
+                        desc = L["OPAQUE_BACKGROUND_OPTION_DESC"],
+                        get = function() return self.addon.db.profile.ui.opaqueBackground end,
+                        set = function(_, val)
+                            self.addon.db.profile.ui.opaqueBackground = val
+                            if self.addon.MyCheatSheetFrame then
+                                self.addon:UpdateMainPanelBackdrop()
+                            end
+                        end,
+                        width = "full",
+                        order = 4
+                    },
+                    hideSectionTitles = {
+                        type = "toggle",
+                        name = L["HIDE_SECTION_TITLES_OPTION_NAME"],
+                        desc = L["HIDE_SECTION_TITLES_OPTION_DESC"],
+                        get = function() return self.addon.db.profile.ui.hideSectionTitles end,
+                        set = function(_, val)
+                            self.addon.db.profile.ui.hideSectionTitles = val
+                            if self.addon.MyCheatSheetFrame then
+                                self.addon:UpdateUI()
+                            end
+                        end,
+                        width = "full",
+                        order = 5,
+                    }, 
                 }
             },
 
@@ -269,7 +318,7 @@ function module:DebugPrint(...)
     end
 end
 
---- Getter del flag DebugMode
+--- Getter for DebugMode flag
 function module:GetDebugMode()
     if self then
       if self.addon.db and self.addon.db.profile.advanced then
@@ -279,7 +328,7 @@ function module:GetDebugMode()
     return true
 end
 
---- Getter for flag showDataEditButtons
+--- Getter for showDataEditButtons flag
 function module:GetShowDataEditButtons()
     if self then
       if self.addon.db and self.addon.db.profile.ui then
@@ -291,7 +340,7 @@ function module:GetShowDataEditButtons()
     return true
 end
 
---- Getter for flag showLayoutEditButton
+--- Getter for showLayoutEditButton flag
 function module:GetShowLayoutEditButton()
     if self then
       if self.addon.db and self.addon.db.profile.ui then
@@ -312,6 +361,28 @@ function module:ResetLayoutToDefault()
     if self.addon.MyCheatSheetFrame then
         self.addon:UpdateUI()
     end
+end
+
+--- Getter for opaqueBackground flag
+function module:GetOpaqueBackground()
+    if self then
+      if self.addon.db and self.addon.db.profile.ui then
+          return self.addon.db.profile.ui.opaqueBackground
+      else
+          return false
+      end
+    end
+    return true
+end
+
+function module:GetHideSectionTitles()
+    if self then
+        if self.addon.db and self.addon.db.profile.ui then
+            return self.addon.db.profile.ui.hideSectionTitles
+        end
+        return false
+    end
+    return true
 end
 
 -- config.lua -- fin del archivo

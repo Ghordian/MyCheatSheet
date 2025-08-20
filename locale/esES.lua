@@ -8,10 +8,15 @@ L["MY_CHEAT_SHEET"] = "My Cheat-Sheet"
 L["TOGGLE_MYCHEATSHEET_PANEL"] = "Abrir UI de MyCheatSheet"
 
 -- UI
-L["SELECT_CLASS"] = "Seleccionar clase"
+L["SELECT_CLASS"] = "Seleccionar Clase"
 L["SELECT_SPECIALIZATION"] = "Seleccionar Especialización" 
 L["SELECT_CONTENT"] = "Seleccionar Contenido"
+L["CLASS_DOTS"] = "Clase:"
+L["SPEC_DOTS"] = "Espec.:"
+L["CONTENT_DOTS"] = "Contenido:"
 L["NO_DATA_SELECTED"] = "Selecciona una especialización y un contenido."
+-- NOTAS Y AYUDA
+L["IMPORT_EXPORT_NOTE"] = "¿Quieres compartir o guardar tus configuraciones? Usa el botón Importar/Exportar para copiar, pegar o transferir tus hojas de personaje fácilmente entre cuentas o con amigos. ¡No pierdas tu progreso!"
 
 -- IMPORT
 L["IMPORT_EXPORT"] = "Importar/Exportar"
@@ -124,6 +129,14 @@ L["CRIT"] = "Crítico"
 L["STRENGTH"] = "Fuerza"
 L["AGILITY"] = "Agilidad"
 L["INTELLECT"] = "Intelecto"
+-- STATS ABBREVIATION (MAX. 4 CHARS)
+L["CRIT_ABBE"] = "Crít"
+L["STRENGTH_ABBE"] = "Fuer"
+L["AGILITY_ABBE"] = "Agil"
+L["INTELLECT_ABBE"] = "Inte"
+L["HASTE_ABBE"] = "Cele"
+L["MASTERY_ABBE"] = "Mast"
+L["VERSATILITY_ABBE"] = "Vers"
 
 -- MINIMAP
 L["MINIMAP_TOOLTIP_LEFT_CLICK"] = "Click izquierdo: Abrir panel de hojas de trucos"
@@ -145,5 +158,11 @@ L["SHOW_DATA_EDIT_BUTTONS_OPTION_NAME"] = "Mostrar botones de edición de datos"
 L["SHOW_DATA_EDIT_BUTTONS_OPTION_DESC"] = "Muestra u oculta los botones de edición de datos (Editar, BiS, Alt) en cada sección."
 L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_NAME"] = "Mostrar botón de edición de layout"
 L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_DESC"] = "Muestra u oculta el botón de edición de layout en la interfaz principal."
+
+L["OPAQUE_BACKGROUND_OPTION_NAME"] = "Fondo opaco"
+L["OPAQUE_BACKGROUND_OPTION_DESC"] = "Usa un fondo sólido para el panel principal (no transparente)."
+
+L["HIDE_SECTION_TITLES_OPTION_NAME"] = "Ocultar títulos de sección"
+L["HIDE_SECTION_TITLES_OPTION_DESC"] = "Si está activado, los títulos de cada sección no se mostrarán."
 
 -- esES.lua -- fin del archivo

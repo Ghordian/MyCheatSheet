@@ -7,17 +7,18 @@
 ---@class MyCheatSheetStatGroup
 ---@field stats table<number, string>
 ---@field operator string?
+---@field percent number?
 
 ---@class MyCheatSheetItemRow
 ---@field itemIDs table<number, number>
 
----@class MyCheatSheetWeapons
+---@class MyCheatSheetInventoryItems
 ---@field bestInSlot MyCheatSheetItemRow
 ---@field alternatives MyCheatSheetItemRow
 
----@class MyCheatSheetTrinkets
----@field bestInSlot MyCheatSheetItemRow
----@field alternatives MyCheatSheetItemRow
+---@class MyCheatSheetWeapons : MyCheatSheetInventoryItems
+
+---@class MyCheatSheetTrinkets : MyCheatSheetInventoryItems
 
 ---@class MyCheatSheetTier
 ---@field bestInSlot MyCheatSheetItemRow
@@ -26,11 +27,19 @@
 ---@field statsPriority table<number, MyCheatSheetStatGroup>
 
 ---@class MyCheatSheetSpecializationData
+---@field author string         # Autor de la hoja
+---@field updated string        # Fecha de actualización (yyyy-mm-dd)
+---@field patchVersion string   # Versión del parche WoW (11.2.0)
 ---@field weapons MyCheatSheetWeapons
 ---@field trinkets MyCheatSheetTrinkets
 ---@field consumables MyCheatSheetItemRow
 ---@field tier MyCheatSheetTier
 ---@field statsByContent table<string, MyCheatSheetContent>
+
+---@class AuthorData
+---@field author string         # Autor de la hoja
+---@field updated string        # Fecha de actualización (yyyy-mm-dd)
+---@field patchVersion string   # Versión del parche WoW (11.2.0)
 
 -- CORE
 

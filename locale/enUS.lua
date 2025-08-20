@@ -12,6 +12,8 @@ L["SELECT_CLASS"] = "Select class"
 L["SELECT_SPECIALIZATION"] = "Select Specialization"
 L["SELECT_CONTENT"] = "Select Content"
 L["NO_DATA_SELECTED"] = "Select specialization and content."
+-- NOTES AND HELP
+L["IMPORT_EXPORT_NOTE"] = "Want to share or back up your setups? Use the Import/Export button to copy, paste, or transfer your character sheets easily between accounts or with friends. Don't lose your progress!"
 
 -- IMPORT/EXPORT
 L["IMPORT_EXPORT"] = "Import/Export"
@@ -124,6 +126,14 @@ L["CRIT"] = "Crit"
 L["STRENGTH"] = "Strength"
 L["AGILITY"] = "Agility"
 L["INTELLECT"] = "Intellect"
+-- STATS ABBREVIATION (MAX. 4 CHARS)
+L["CRIT_ABBE"] = "Crit"
+L["STRENGTH_ABBE"] = "Stre"
+L["AGILITY_ABBE"] = "Agil"
+L["INTELLECT_ABBE"] = "Inte"
+L["HASTE_ABBE"] = "Hast"
+L["MASTERY_ABBE"] = "Mast"
+L["VERSATILITY_ABBE"] = "Vers"
 
 -- MINIMAP
 L["MINIMAP_TOOLTIP_LEFT_CLICK"] = "Left click: Open cheat sheet panel"
@@ -145,5 +155,11 @@ L["SHOW_DATA_EDIT_BUTTONS_OPTION_NAME"] = "Show Data Edit Buttons"
 L["SHOW_DATA_EDIT_BUTTONS_OPTION_DESC"] = "Show or hide the data edit buttons (Edit, BiS, Alt) in each section."
 L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_NAME"] = "Show Layout Edit Button"
 L["SHOW_LAYOUT_EDIT_BUTTON_OPTION_DESC"] = "Show or hide the layout edit button in the main UI."
+
+L["OPAQUE_BACKGROUND_OPTION_NAME"] = "Opaque Background"
+L["OPAQUE_BACKGROUND_OPTION_DESC"] = "Use a solid background template for the main panel (not transparent)."
+
+L["HIDE_SECTION_TITLES_OPTION_NAME"] = "Hide Section Titles"
+L["HIDE_SECTION_TITLES_OPTION_DESC"] = "If enabled, the titles of each section will not be displayed."
 
 -- enUS.lua -- end of file

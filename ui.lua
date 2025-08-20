@@ -17,7 +17,9 @@ local L = AceLocale:GetLocale(ADDON_NAME)
 --- Crea la interfaz principal del cheat sheet
 function MyCheatSheet:CreateCheatSheetUI()
 
-    local frame = CreateFrame("Frame", "MyCheatSheetFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate");
+    -- BasicFrameTemplateWithInset
+    -- BackdropTemplateMixin and "BackdropTemplate"
+    local frame = CreateFrame("Frame", "MyCheatSheetFrame", UIParent, "BackdropTemplate");
     -- Intentar restaurar la posición guardada
     ---@type FramePosition
     local pos = self.db and self.db.profile and self.db.profile.ui and self.db.profile.ui.position
@@ -30,14 +32,9 @@ function MyCheatSheet:CreateCheatSheetUI()
     frame:SetSize(680, 580);
     frame:Hide();
 
-    frame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-        edgeSize = 32,
-        insets = { left = 11, right = 12, top = 12, bottom = 11 },
-    });
-
-    frame:SetBackdropColor(0.1, 0.1, 0.1, 1);
+    -- Aplica el fondo según la opción de fondo opaco
+    self.MyCheatSheetFrame = frame;
+    self:UpdateMainPanelBackdrop()
     frame:SetMovable(true);
     frame:EnableMouse(true);
     frame:SetClampedToScreen(true);
@@ -108,7 +105,7 @@ function MyCheatSheet:CreateCheatSheetUI()
     end)
     frame.editLayoutButton = editLayoutButton
     -- Mostrar/ocultar según config
-    if not (MyCheatSheet.config.GetShowLayoutEditButton()) then
+    if not (MyCheatSheet.config:GetShowLayoutEditButton()) then
         editLayoutButton:Hide()
     else
         editLayoutButton:Show()
@@ -117,7 +114,7 @@ function MyCheatSheet:CreateCheatSheetUI()
     frame:HookScript("OnShow", function(self)
         if self.editLayoutButton then
             self.editLayoutButton:SetText(MyCheatSheet.isLayoutEditMode and L["SAVE_LAYOUT"] or L["EDIT_LAYOUT"])
-            if MyCheatSheet.config.GetShowLayoutEditButton() then
+            if MyCheatSheet.config:GetShowLayoutEditButton() then
                 self.editLayoutButton:Show()
             else
                 self.editLayoutButton:Hide()
@@ -127,7 +124,6 @@ function MyCheatSheet:CreateCheatSheetUI()
 
     frame:SetSize(700, 680);
 
-    self.MyCheatSheetFrame = frame;
     tinsert(UISpecialFrames, "MyCheatSheetFrame");
 
     -- Refuerzo: asegurar que el botón esté siempre visible y habilitado al mostrar la ventana
@@ -137,6 +133,29 @@ function MyCheatSheet:CreateCheatSheetUI()
             self.closeButton:Enable()
         end
     end)
+end
+
+-- Permite actualizar el fondo del panel principal dinámicamente
+function MyCheatSheet:UpdateMainPanelBackdrop()
+    local frame = self.MyCheatSheetFrame
+    if not frame then return end 
+    if self.config:GetOpaqueBackground() then
+        frame:SetBackdrop({
+            -- Interface\\DialogFrame\UI-DialogBox-Background
+            -- Interface\\FrameGeneral\\UI-Background-Marble
+            bgFile = "Interface\\FrameGeneral\\UI-Background-Marble",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            edgeSize = 32,
+            insets = { left = 11, right = 12, top = 12, bottom = 11 },
+        })
+    else
+        frame:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            edgeSize = 32,
+            insets = { left = 11, right = 12, top = 12, bottom = 11 },
+        })
+    end
 end
 
 -- =============================
@@ -203,6 +222,7 @@ function MyCheatSheet:CreateUIContent()
     self.scrollFrame = scrollFrame;
     self.contentFrame = contentFrame;
 
+
     -- Import/Export Button
     local importExportButton = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate");
     importExportButton:SetText(L["IMPORT_EXPORT"]);
@@ -212,13 +232,24 @@ function MyCheatSheet:CreateUIContent()
     importExportButton:SetScript("OnClick", function() MyCheatSheet:OpenImportExportPanel(); end);
     importExportButton:Show();
 
-    -- Edit Button (deshabilitado para futuras versiones)
+    -- Nota sobre Import/Export
+    local importExportNote = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    importExportNote:SetText(L["IMPORT_EXPORT_NOTE"])
+    importExportNote:SetTextColor(1, 0.95, 0.5, 1)
+    importExportNote:SetJustifyH("LEFT")
+    importExportNote:SetWidth(500)
+    importExportNote:SetHeight(50)
+    importExportNote:SetPoint("TOPLEFT", importExportButton, "RIGHT", 10, 25);
+--    importExportNote:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -35, 45)
+
+    --[[ Edit Button (deshabilitado para futuras versiones)
     local editButton = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate");
     editButton:SetText(L["EDIT"]);
     editButton:SetSize(80, 25);
     editButton:SetPoint("LEFT", importExportButton, "RIGHT", 10, 0);
     editButton:SetScript("OnClick", function() MyCheatSheet:OpenEditPanel(); end);
     editButton:Hide();
+    ]]--
 end
 
 -- =============================
@@ -419,9 +450,10 @@ end
 function MyCheatSheet:UpdateUI()
     local selectedClass = self.selectedClass;
     local selectedSpec = self.selectedSpec;
+    --- @type string : contentKeysToNames
     local selectedContent = self.selectedContent;
 
-    self:DebugPrint("UpdateUI", selectedClass, selectedSpec, selectedContent)
+--**self:DebugPrint("UpdateUI", selectedClass, selectedSpec, selectedContent)
 
     -- Limpiar el contenido anterior
     for _, child in ipairs({ self.contentFrame:GetChildren() }) do
@@ -555,8 +587,10 @@ function MyCheatSheet:UpdateUI()
     end
 
     -- Agregar información del autor y fecha de actualización al final
-    if specData and (specData.author or specData.updated) then
-        yOffset = yOffset + self:CreateSheetInfoFooter(self.contentFrame, yOffset, specData);
+    if specData and (specData.author or specData.updated or specData.patchVersion) then
+        local authorData = self:GetAuthorData(selectedClass, selectedSpec, selectedContent)
+
+        yOffset = yOffset + self:CreateSheetInfoFooter(self.contentFrame, yOffset, authorData);
     end
     local extraPadding = 0;
     self.contentFrame:SetSize(self.scrollFrame:GetWidth() - extraPadding, yOffset);
@@ -565,9 +599,9 @@ end
 --- Crea el pie de página con información del autor, fecha de actualización y más
 ---@param parent Frame
 ---@param yOffset number
----@param specData table
+---@param authorData AuthorData
 ---@return number footerHeight La altura del pie de página creado.
-function MyCheatSheet:CreateSheetInfoFooter(parent, yOffset, specData)
+function MyCheatSheet:CreateSheetInfoFooter(parent, yOffset, authorData)
     local footerHeight = 36;
     local footerFrame = CreateFrame("Frame", "SheetFooterFrame", parent, "BackdropTemplate");
     footerFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -yOffset);
@@ -592,8 +626,8 @@ function MyCheatSheet:CreateSheetInfoFooter(parent, yOffset, specData)
     local infoText = ""
     local patchText = ""
     -- Usar patchVersion como campo principal
-    if specData.patchVersion then
-        local version = tostring(specData.patchVersion)
+    if authorData.patchVersion then
+        local version = tostring(authorData.patchVersion)
         local title = consts.PATCH_TITLES[version]
         patchText = L["PATCH"] .. " " .. clrBlue .. version .. clrReset
         if title and title ~= "" then
@@ -604,15 +638,15 @@ function MyCheatSheet:CreateSheetInfoFooter(parent, yOffset, specData)
         infoText = patchText
     end
 
-    if specData.author then
+    if authorData.author then
         if infoText ~= "" then
             infoText = infoText .. "  |  "
         end
-        infoText = infoText .. L["AUTHOR"] .. ": " .. clrGreen .. specData.author .. clrReset
+        infoText = infoText .. L["AUTHOR"] .. ": " .. clrGreen .. authorData.author .. clrReset
     end
 
-    if specData.updated then
-        local updatedText = L["UPDATED"] .. ": " .. clrYellow .. specData.updated .. clrReset
+    if authorData.updated then
+        local updatedText = L["UPDATED"] .. ": " .. clrYellow .. authorData.updated .. clrReset
         if infoText ~= "" then
             infoText = infoText .. "  |  " .. updatedText
         else
@@ -693,12 +727,25 @@ function MyCheatSheet:CreateStatPriorityRowWithCustomIcon(parent, statGroups, yO
         end)
     end
 
+    local function GetStatName(stat, bUseAbrev)
+      local sText =L[stat]
+      if bUseAbrev then
+        sText = L[stat.."_ABBE"]
+      end
+      return sText
+    end
+
     local xOffset = 24;
     local statYOffset = -25;
+    local bUseAbrev = nil
     for i, group in ipairs(statGroups) do
+        if bUseAbrev == nil then
+          bUseAbrev = group.percent
+        end
         for j, stat in ipairs(group.stats) do
             local statText = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
-            statText:SetText(L[stat]);
+            local sValue = GetStatName(stat, bUseAbrev)
+            statText:SetText(sValue);
             statText:SetPoint("TOPLEFT", xOffset, statYOffset);
             if consts.statColors[stat] then
                 statText:SetTextColor(consts.statColors[stat].r, consts.statColors[stat].g, consts.statColors[stat].b, consts.statColors[stat].a);
@@ -711,6 +758,13 @@ function MyCheatSheet:CreateStatPriorityRowWithCustomIcon(parent, statGroups, yO
                 separator:SetPoint("TOPLEFT", xOffset, statYOffset);
                 xOffset = xOffset + separator:GetWidth() + 5;
             end
+        end
+        if group.percent then
+            local percent = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+            local sValue = string.format("(%d %%)", tonumber(group.percent))
+            percent:SetText(sValue);
+            percent:SetPoint("TOPLEFT", xOffset, statYOffset);
+            xOffset = xOffset + percent:GetWidth() + 5;
         end
         if group.operator and i < #statGroups then
             local separator = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
@@ -798,7 +852,7 @@ end
 function MyCheatSheet:CreateItemSection(parent, yOffset, title, subsections)
     local itemSize = 40;
     local itemPadding = 5;
-    local titleHeight = 20;
+    local titleHeight = 0;
     local subtitleHeight = 12;
     local verticalPadding = 5;
     local horizontalPadding = 15;
@@ -841,10 +895,14 @@ function MyCheatSheet:CreateItemSection(parent, yOffset, title, subsections)
         xOffset = xOffset + 20
     end
 
-    local titleString = sectionFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-    titleString:SetText(title);
-    titleString:SetTextColor(1.0, 1.0, 1.0);
-    titleString:SetPoint("TOPLEFT", sectionFrame, "TOPLEFT", xOffset, -8)
+    local titleString = nil
+    if not MyCheatSheet.config:GetHideSectionTitles() then
+        titleString = sectionFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+        titleString:SetText(title);
+        titleString:SetTextColor(1.0, 1.0, 1.0);
+        titleString:SetPoint("TOPLEFT", sectionFrame, "TOPLEFT", xOffset, -8)
+        titleHeight = 20;
+    end
 
     -- Verificar si la sección tiene subsecciones
     local hasSubsections = false
@@ -1305,7 +1363,6 @@ end
 ---@param count number
 function MyCheatSheet:SetVisibleSectionCount(count)
     self.visibleSectionCount = count
-    self:DebugPrint(string.format("Visible section count set to %d", count))
 end
 
 -- Helper para crear botones de edición en cada sección
@@ -1617,4 +1674,23 @@ StaticPopupDialogs["MYCHEATSHEET_CONFIRM_SAVE_LAYOUT"] = {
     hideOnEscape = 1,
     preferredIndex = 3,
 }
+
+--- Crea la interfaz de usuario para la hoja de trucos del personaje
+--- @param parent Frame
+function MyCheatSheet:CreateCharacterCheatSheetUI (parent)
+    local frame = CreateFrame("Frame", "CharacterCheatSheetFrame", parent)
+    frame:SetSize(200, 200)
+    frame:SetPoint("CENTER")
+    frame:Hide()
+
+    -- Agregar contenido al marco
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    title:SetPoint("TOP", 0, -10)
+    title:SetText("Character Cheat Sheet")
+
+    -- Agregar más elementos de interfaz de usuario según sea necesario
+
+    return frame
+end
+
 -- ui.lua - fin del archivo

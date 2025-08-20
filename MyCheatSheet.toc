@@ -5,7 +5,7 @@
 ## Notes: A character cheat sheet for World of Warcraft: The War Within.
 
 ## Author: Ghordjan
-## Version: 0.3.2
+## Version: 0.3.3
 
 ## LoadOnDemand: 0
 #-# LoadWith: Blizzard_PlayerSpells

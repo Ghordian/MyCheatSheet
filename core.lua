@@ -1,9 +1,12 @@
 --- MyCheatSheet.lua
 local ADDON_NAME, private = ... 
 
+--- @type MyCheatSheet
 local MyCheatSheet = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceEvent-3.0", "AceConsole-3.0", "AceHook-3.0");
 
+--- @type AceLocale-3.0
 local AceLocale = LibStub("AceLocale-3.0")
+--- @type AceGUI-3.0
 local AceGUI = LibStub("AceGUI-3.0")
 
 local L = AceLocale:GetLocale(ADDON_NAME)
@@ -27,6 +30,7 @@ MyCheatSheet.contentKeysToNames = {
     ["RAID-TANK"]   = L["RAID-TANK"],
     ["RAID-HEAL"]   = L["RAID-HEAL"],
     ["RAID-CLEAVE"] = L["RAID-CLEAVE"],
+    ["RAID-DPS"]    = L["RAID-DPS"],
     ["MYTHIC_PLUS"] = L["MYTHIC_PLUS"],
     ["DELVES"]      = L["DELVES"],
     ["OPEN_WORLD"]  = L["OPEN_WORLD"],
@@ -67,6 +71,13 @@ function MyCheatSheet:DebugPrint(...)
   end
 end
 
+local function OnShowCharacterFrame(self, frame)
+    if MyCheatSheet and MyCheatSheet.AddCharacterFrameTab then
+        MyCheatSheet:AddCharacterFrameTab(frame)
+    end
+end
+
+
 function MyCheatSheet:OnInitialize()
     self:DebugPrint("MyCheatSheet:OnInitialize")
 
@@ -86,6 +97,10 @@ function MyCheatSheet:OnInitialize()
 
     self:RegisterMessage("MCS_CUSTOMSHEETS_REFRESH", "RefreshUI")
 
+    --[[ Hook para inicializar la pestaña al abrir el CharacterFrame
+    self:SecureHookScript(CharacterFrame, "OnShow", OnShowCharacterFrame);
+    ]]--
+
     print("|cff00ff00MyCheatSheet|r loaded. Use |cff00ff00/mcs|r to open.")
 end
 
@@ -98,10 +113,6 @@ function MyCheatSheet:OnEnable()
 
     debugMode = self.config.GetDebugMode();
 
-if false then
-    self:CreateCheatSheetUI();
-    self:CreateUIContent();
-end    
     self:LoadPlayerDefaults();
 
     -- Registrar los eventos para la carga de personaje y el cambio de talentos
@@ -227,26 +238,26 @@ end
 --- Muestra u oculta la interfaz de usuario.
 ---@param show boolean|nil
 function MyCheatSheet:ToggleUI(show)
-    local frame = self.MyCheatSheetFrame;
+    local frame = self.MyCheatSheetFrame
     if frame == nil then
-        self:CreateCheatSheetUI();
-        self:CreateUIContent();
-        frame = self.MyCheatSheetFrame;
+        self:CreateCheatSheetUI()
+        self:CreateUIContent()
+        frame = self.MyCheatSheetFrame
         if frame then
             self:UpdateDropdowns()
-            self:UpdateUI();
+            self:UpdateUI()
         end
     end
     if show == nil then
         if frame:IsShown() then
-            frame:Hide();
+            frame:Hide()
         else
-            frame:Show();
+            frame:Show()
         end
     elseif show then
-        frame:Show();
+        frame:Show()
     else
-        frame:Hide();
+        frame:Hide()
     end
 end
 
@@ -334,7 +345,44 @@ function MyCheatSheet:GetStatsData(classID, specID, contentKey)
     return nil, nil
 end
 
+--- Obtiene datos de autor con soporte para datos personalizados
+---@param classID number ClassID
+---@param specID number SpecID
+---@param contentKey string|nil ContentKey
+---@return table|nil, isCustom|nil
+function MyCheatSheet:GetAuthorData(classID, specID, contentKey)
+    local isCustom = nil
+    local authorData = {}
 
+    -- 1. Buscar datos de autor personalizados primero
+    if MyCheatSheetDB and MyCheatSheetDB.customOverrides and
+       MyCheatSheetDB.customOverrides[classID] and
+       MyCheatSheetDB.customOverrides[classID][specID] then
+
+        authorData = {
+            author = MyCheatSheetDB.customOverrides[classID][specID].author,
+            updated = MyCheatSheetDB.customOverrides[classID][specID].updated,
+            patchVersion = MyCheatSheetDB.customOverrides[classID][specID].patchVersion,
+        };
+        isCustom = true
+        -- Devolver datos de autor personalizados
+        return authorData, isCustom
+    end
+
+    -- 2. Si no hay personalizadas, devolver las originales
+    local specData = self.data.sheets[classID] and self.data.sheets[classID][specID]
+    if specData  then
+        authorData = {
+            author = specData.author,
+            updated = specData.updated,
+            patchVersion = specData.patchVersion,
+        };
+
+        return authorData, isCustom
+    end
+
+    return nil, nil
+end
 
 --[[
       https://warcraft.wiki.gg/wiki/API_C_ClassTalents.GetActiveHeroTalentSpec
@@ -419,21 +467,21 @@ function MyCheatSheet:GetTalentInfo()
     return nil, nil
 end
 
---- Obtiene los trinkets apropiados - VERSIÓN SIMPLIFICADA
----@param classID number
----@param specID number
----@return table trinkets { bestInSlot = {...}, alternatives = {...} }
+--- Obtiene los trinkets apropiados
+---@param classID number ClassID
+---@param specID number SpecID
+---@return table trinkets MyCheatSheetInventoryItems
 function MyCheatSheet:GetTrinckets(classID, specID)
+    --- @type MyCheatSheetSpecializationData
     local specData = self.data.sheets[classID] and self.data.sheets[classID][specID]
     if not specData then
         return { bestInSlot = { itemIDs = {} }, alternatives = { itemIDs = {} } }
     end
-    
-    -- SIMPLE: Solo usar trinkets generales
+
     if specData.trinkets then
         return specData.trinkets
     end
-    
+
     -- Estructura vacía por defecto
     return { bestInSlot = { itemIDs = {} }, alternatives = { itemIDs = {} } }
 end
@@ -445,4 +493,56 @@ function MyCheatSheet:RefreshUI()
         self:UpdateUI()
     end
 end
+
+local SecureTabs = LibStub("SecureTabs-2.0")
+
+--- Añade una pestaña al CharacterFrame usando SecureTabs-2.0
+function MyCheatSheet:AddCharacterFrameTab()
+    if self.characterTabButton then return end -- Evitar duplicados
+
+    -- Crea tu frame si no existe
+    if not self.CharacterCheatSheetFrame then
+        self.CharacterCheatSheetFrame = self:CreateCharacterCheatSheetUI()
+    end
+
+    -- Registra la pestaña
+    self.characterTabButton = SecureTabs:Add(CharacterFrame, self.CharacterCheatSheetFrame, "CheatSheet");
+
+    local tab = self.characterTabButton
+    local secureTabButton = CreateFrame("Button", nil, CharacterFrame, "SecureActionButtonTemplate")
+    secureTabButton:SetAttribute("type", "click")
+    secureTabButton:SetAttribute("clickbutton", CharacterFrameTab4)
+    secureTabButton:SetPoint("TOPLEFT", tab, "TOPLEFT")
+    secureTabButton:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT")
+    secureTabButton:RegisterForClicks("AnyDown")
+
+    secureTabButton:HookScript("OnClick", function()
+        tab:Click()
+        if selectedTab ~= MyCheatSheet.characterTabButton:GetID() then
+            MyCheatSheet.CharacterCheatSheetFrame:Hide()
+        end
+    end)
+
+    tab:SetPassThroughButtons("LeftButton")
+    tab.Enable = nop
+    tab.Disable = nop
+
+    tab.OnSelect = function()
+        CharacterFrameTitleText:SetText(L["MY_CHEAT_SHEET"])
+        -- todo - Mostrar el frame cuando se selecciona la pestaña
+        if MyCheatSheet.CharacterCheatSheetFrame then
+            MyCheatSheet.CharacterCheatSheetFrame:Show()
+        end
+    end
+
+    tab.OnDeselect = function()
+        -- Ocultar el frame cuando se deselecciona la pestaña
+        if MyCheatSheet.CharacterCheatSheetFrame then
+            MyCheatSheet.CharacterCheatSheetFrame:Hide()
+        end
+    end
+    self.Tab = tab
+
+end
+
 -- core.lua - fin del archivo

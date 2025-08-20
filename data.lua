@@ -259,10 +259,10 @@ private.data = {
           statsByContent = {
             -- Pack Leader Single-Target Build
             ["RAID-DPS"] = { statsPriority = {
-              { stats = { "HASTE" },        operator = ">" },
-              { stats = { "MASTERY" },      operator = ">=" },
-              { stats = { "CRIT" },         operator = ">" },
-              { stats = { "VERSATILITY" },  operator = ">" },
+              { stats = { "HASTE" },        operator = ">",  percent = 25 },
+              { stats = { "MASTERY" },      operator = ">=", percent = 35 },
+              { stats = { "CRIT" },         operator = ">",  percent = 20 },
+              { stats = { "VERSATILITY" },  operator = ">",  percent = 4 },
               { stats = { "AGILITY" } }, }, },
             -- Pack Leader Multi-Shot AoE
             ["RAID-CLEAVE"] = { statsPriority = {
