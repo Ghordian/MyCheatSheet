@@ -60,3 +60,4 @@ test/
 testing/
 
 # Specific files from your workspace
+/data
