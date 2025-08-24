@@ -5,8 +5,14 @@ All notable changes to MyCheatSheet will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3.2] - 2025-08-24
+- Fixed Ace3 dependencies
+
+## [0.3.3.1] - 2025-08-20
+- Removed debug files
+
 ## [0.3.3] - 2025-08-17
-- Added UI Config options; opaqueBackground
+- Added UI Config options; opaqueBackground, hideSectionTitles
 
 ## [0.3.2] - 2025-08-16
 - Added confirmation message for "Reset Custom Data"
